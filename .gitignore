@@ -1,0 +1,18 @@
+# Entorno Virtual
+.venv/
+venv/
+*.pyc
+__pycache__/
+
+# Archivos de IDE/Editor
+.vscode/
+.idea/
+
+# Archivos de datos sensibles (si aplica)
+data/input/*.xlsx
+data/input/*.xls
+# Si guardas logs con información sensible
+*.log
+
+# Archivos de configuración con secretos (si los hubiera, ej. .env)
+.env
