@@ -16,3 +16,7 @@ data/input/*.xls
 
 # Archivos de configuración con secretos (si los hubiera, ej. .env)
 .env
+
+# Reportes de pruebas y cobertura
+.coverage
+htmlcov/
