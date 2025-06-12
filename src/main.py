@@ -9,6 +9,7 @@ from src.data_handler.loader import ExcelLoader
 from src.data_handler.filter import DataFilterer
 from src.data_handler.validator import DataValidator
 from src.core.orchestrator import Orchestrator
+from src.automation.strategies.remote.automator import RemoteAutomator
 
 def main():
     setup_logging()
@@ -36,12 +37,14 @@ def main():
         excel_loader = ExcelLoader()
         data_filterer = DataFilterer()
         data_validator = DataValidator()
+        automator = RemoteAutomator()
         
         orchestrator = Orchestrator(
             config_loader=config_loader,
             data_loader=excel_loader,
             data_filterer=data_filterer,
-            data_validator=data_validator
+            data_validator=data_validator,
+            automator=automator
         )
 
         orchestrator.run(

@@ -5,6 +5,7 @@ class ConfigSections:
     DATA_SOURCE = 'DataSource'
     COLUMN_MAPPING = 'ColumnMapping'
     FILTER_CRITERIA = 'FilterCriteria'
+    AUTOMATION = 'AutomationSettings'
 
 class ConfigKeys:
     """Nombres de las claves dentro de las secciones del .ini."""
