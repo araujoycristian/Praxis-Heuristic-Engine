@@ -12,6 +12,7 @@ class FacturacionData:
     
     # --- Datos clave y obligatorios ---
     numero_historia: str
+    identificacion: str
     diagnostico_principal: str
     fecha_ingreso: date
     medico_tratante: str

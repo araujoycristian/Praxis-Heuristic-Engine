@@ -32,6 +32,6 @@ class ConfigLoader:
             raise FileNotFoundError(f"El archivo de perfil '{profile_path}' no fue encontrado.")
 
         parser = configparser.ConfigParser()
-        parser.read(profile_path)
+        parser.read(profile_path, encoding='utf-8')
         self.logger.info(f"Perfil '{profile_name}' cargado exitosamente.")
         return parser

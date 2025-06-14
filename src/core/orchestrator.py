@@ -205,6 +205,9 @@ class Orchestrator:
                     LogicalFields.NUMERO_HISTORIA: str(
                         getattr(row, sane_mapping[LogicalFields.NUMERO_HISTORIA])
                     ),
+                    'identificacion': str(
+                        getattr(row, sane_mapping['identificacion'])
+                    ),
                     LogicalFields.DIAGNOSTICO_PRINCIPAL: str(
                         getattr(row, sane_mapping[LogicalFields.DIAGNOSTICO_PRINCIPAL])
                     ),

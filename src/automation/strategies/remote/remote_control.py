@@ -9,7 +9,7 @@ import time
 # Solo importamos pywinauto si estamos en Windows.
 if sys.platform == 'win32':
     try:
-        from pywinauto.desktop import Desktop
+        from pywinauto import Desktop
         from pywinauto.findwindows import ElementNotFoundError
     except ImportError:
         # Si pywinauto no está instalado en Windows, es un error fatal.
@@ -82,6 +82,14 @@ class RemoteControlFacade:
                 )
         else:
             raise NotImplementedError(f"El control remoto no está implementado para el sistema operativo: {sys.platform}")
+
+    def wait(self, seconds: float) -> None:
+        """
+        Pausa la ejecución durante un número determinado de segundos.
+        Útil para esperar a que la GUI responda.
+        """
+        self.logger.debug(f"Pausando ejecución por {seconds:.2f} segundos.")
+        time.sleep(seconds)
 
     def type_keys(self, keys: str) -> None:
         """
