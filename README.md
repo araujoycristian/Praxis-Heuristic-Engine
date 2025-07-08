@@ -1,39 +1,102 @@
 # Bot de Automatización de Facturación Médica
 
-Este proyecto es un bot de software diseñado para automatizar el proceso de facturación médica. Su objetivo es leer datos de pacientes desde un archivo Excel, validarlos según reglas de negocio configurables y, finalmente, introducirlos en un software de facturación a través de la automatización de una interfaz de escritorio remoto.
+![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg) <!-- Placeholder: Conectar a CI/CD real -->
+![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg) <!-- Placeholder: Conectar a CI/CD real -->
 
-## Características Principales
+## 🚀 Demostración Visual
 
-- **Carga de Datos desde Excel:** Lee los datos de facturación desde archivos `.xlsx`.
-- **Procesamiento Basado en Perfiles:** Utiliza archivos de configuración (`.ini`) para adaptar el comportamiento del bot a diferentes clientes o casos de uso sin modificar el código.
-- **Validación de Datos:** Comprueba la integridad y el formato de los datos de entrada antes de procesarlos.
-- **Filtrado Dinámico:** Permite filtrar los registros del archivo de entrada según los criterios definidos en el perfil.
-- **Automatización de GUI:** Controla aplicaciones de escritorio en Windows (usando `pywinauto`) y Linux (usando `xdotool`) para simular la entrada de datos manual.
-- **Generación de Reportes:** Exporta un informe de los registros que no pasaron la validación.
+![Demo del Bot en Acción](docs/demo.gif) <!-- **ACCIÓN REQUERIDA:** Reemplazar con un GIF real del bot en funcionamiento. -->
 
-## Estructura del Proyecto
+_Un breve GIF mostrando el bot automatizando la entrada de datos en el sistema de facturación._
+
+## 🎯 El Desafío
+
+En el sector de la facturación médica, la entrada manual de datos en sistemas legados o de escritorio es una tarea repetitiva, propensa a errores humanos y que consume una cantidad significativa de tiempo y recursos. Esto no solo ralentiza los procesos administrativos, sino que también puede llevar a discrepancias en la facturación y a una baja eficiencia operativa.
+
+## ✨ La Solución: Automatización Inteligente
+
+Este proyecto presenta un **Bot de Automatización de Procesos (RPA)** diseñado específicamente para abordar este desafío. El bot automatiza de manera inteligente el flujo de trabajo de facturación médica, desde la lectura y validación de datos hasta su inserción precisa en un software de facturación a través de la automatización de la interfaz de usuario (GUI) de un escritorio remoto.
+
+**Beneficios Clave:**
+- **Reducción Drástica de Errores:** Elimina la posibilidad de errores tipográficos y de transcripción.
+- **Aumento de la Eficiencia:** Procesa grandes volúmenes de datos en una fracción del tiempo que tomaría manualmente.
+- **Optimización de Recursos:** Libera al personal para tareas de mayor valor añadido.
+- **Escalabilidad:** Fácilmente adaptable a diferentes volúmenes de trabajo y configuraciones de sistemas.
+
+## 🏗️ Principios de Arquitectura y Diseño Clave
+
+El diseño de este bot se basa en principios de ingeniería de software robustos para garantizar mantenibilidad, escalabilidad y resiliencia:
+
+-   **Arquitectura Modular y por Capas:** El proyecto está estructurado en capas bien definidas (`data_handler`, `automation`, `core`, `ui`), promoviendo una clara separación de responsabilidades, bajo acoplamiento y alta cohesión. Esto facilita el desarrollo, las pruebas y la evolución independiente de cada componente.
+-   **Diseño Dirigido por Configuración:** El comportamiento operativo del bot (ej. criterios de filtrado, mapeo de columnas, valores de validación) se externaliza en archivos de configuración `.ini`. Esto permite una flexibilidad máxima, adaptando el bot a diferentes clientes o casos de uso sin necesidad de modificar o recompilar el código fuente.
+-   **Inyección de Dependencias (DI):** Los componentes reciben sus dependencias desde un contexto externo (ej. el `Orchestrator` recibe el `Automator`), lo que mejora la testabilidad, facilita el mocking y promueve un diseño más desacoplado y flexible.
+-   **Estrategia de Automatización Resiliente ("Ciega"):**
+    -   **Desafío:** La interacción se realiza con una GUI remota sin acceso directo a los elementos internos, dependiendo exclusivamente de pulsaciones de teclas y el portapapeles.
+    -   **Solución:** Se emplea un patrón **Facade** (`RemoteControlFacade`) para abstraer las complejidades de la interacción con el sistema operativo subyacente (Windows con `pywinauto`, Linux con `xdotool`), proporcionando una API unificada.
+    -   **Robustez (Visión a Futuro):** La arquitectura está diseñada para incorporar una **Máquina de Estados Finitos (FSM)** y un sistema de **excepciones personalizadas** para un control de flujo robusto y una recuperación de errores inteligente, incluso en un entorno de interacción "ciega".
+
+## ⚙️ Características Principales (Estado Actual)
+
+-   **Pipeline de Datos Robusto:** Carga, filtra y valida datos de facturación desde archivos Excel (`.xlsx`), asegurando la integridad de la información antes de la automatización.
+-   **Transformación de Datos:** Convierte filas de `pandas.DataFrame` en objetos `FacturacionData` tipados, facilitando el manejo y la validación de la información.
+-   **Interacción Cross-Platform con GUI:** Capacidad de controlar aplicaciones de escritorio tanto en entornos Windows (utilizando `pywinauto`) como Linux (utilizando `xdotool`).
+-   **Flujo de Automatización Básico:** Implementación de las acciones fundamentales para la búsqueda de pacientes y el inicio de nuevos procesos de facturación en el sistema remoto.
+-   **Reporte de Errores:** Generación automática de informes en formato Excel para los registros que no cumplen con los criterios de validación, facilitando la depuración y corrección.
+
+## 💻 Stack Tecnológico
+
+-   **Lenguaje:** Python 3.9+
+-   **Automatización GUI:**
+    -   `pywinauto` (para Windows)
+    -   `xdotool` (para Linux)
+-   **Manejo de Datos:**
+    -   `pandas` (para manipulación y análisis de DataFrames)
+    -   `openpyxl` (para lectura/escritura de archivos Excel)
+-   **Configuración:** `configparser`
+-   **Logging:** Módulo `logging` estándar de Python
+-   **Testing:** `pytest`
+
+## 📂 Estructura del Proyecto
 
 ```
 facturacion_medica_bot/
-├── config/             # Contiene los perfiles de configuración (.ini)
-├── data/               # Almacena datos de entrada, salida y ejemplos
-├── docs/               # Documentación del proyecto (como este README y la guía de arquitectura)
-├── src/                # Código fuente principal de la aplicación
-│   ├── automation/     # Lógica de interacción con la GUI remota
-│   ├── core/           # Componentes centrales (orquestador, modelos)
-│   ├── data_handler/   # Módulos para cargar, filtrar y validar datos
-│   └── main.py         # Punto de entrada de la aplicación
-├── tests/              # Pruebas unitarias y de integración
-└── requirements.txt    # Dependencias de Python
+├── config/                 # Perfiles de configuración (.ini) para diferentes escenarios.
+│   └── profiles/
+├── data/                   # Contiene datos de entrada, salida y ejemplos.
+│   ├── input/
+│   ├── output/
+│   └── samples/
+├── docs/                   # Documentación del proyecto, incluyendo la guía de arquitectura.
+│   └── ARCHITECTURE.md
+├── src/                    # Código fuente principal de la aplicación.
+│   ├── automation/         # Lógica de interacción con la GUI remota y estrategias de automatización.
+│   │   ├── abc/            # Interfaces abstractas.
+│   │   ├── common/         # Utilidades comunes para automatización.
+│   │   └── strategies/     # Implementaciones de estrategias (ej. 'remote').
+│   ├── core/               # Componentes centrales: orquestador, modelos de datos, constantes.
+│   ├── data_handler/       # Módulos para cargar, filtrar y validar datos de entrada.
+│   ├── ui/                 # Interfaces de usuario (CLI, GUI).
+│   ├── utils/              # Funciones de utilidad generales.
+│   ├── config_loader.py    # Carga y gestión de configuraciones.
+│   ├── logger_setup.py     # Configuración centralizada del sistema de logging.
+│   └── main.py             # Punto de entrada principal de la aplicación.
+├── tests/                  # Pruebas unitarias y de integración para asegurar la calidad del código.
+├── .python-version         # Define la versión de Python para pyenv.
+├── pytest.ini              # Configuración de Pytest.
+├── requirements.in         # Dependencias del proyecto (para pip-compile).
+├── requirements.txt        # Dependencias instalables (generado desde requirements.in).
+└── README.md               # Este documento.
 ```
 
-## Guía de Inicio Rápido
+## 🚀 Guía de Inicio Rápido
 
 ### 1. Prerrequisitos
 
-- Python 3.9 o superior.
-- `pip` y `venv`.
-- En Linux: `xdotool` (`sudo apt-get install xdotool`).
+-   **Python 3.9+** (se recomienda usar `pyenv` o `conda` para gestionar versiones).
+-   **`pip`** y **`venv`** (incluidos con Python).
+-   **En Linux:** `xdotool` (instalar con `sudo apt-get install xdotool` o equivalente para tu distribución).
 
 ### 2. Instalación
 
@@ -61,14 +124,17 @@ facturacion_medica_bot/
 
 ### 3. Configuración
 
-El comportamiento del bot se controla mediante perfiles ubicados en `config/profiles/`.
+El comportamiento del bot se controla mediante perfiles de configuración (`.ini`) ubicados en `config/profiles/`.
 
-1.  Copia el perfil de ejemplo: `cp config/profiles/dev_nancy.ini config/profiles/mi_perfil.ini`.
-2.  Edita `mi_perfil.ini` para ajustar la configuración a tus necesidades (ej. nombre de la ventana, mapeo de columnas, etc.).
+1.  **Copia un perfil de ejemplo:** Puedes usar `dev_nancy.ini` como base.
+    ```bash
+    cp config/profiles/dev_nancy.ini config/profiles/mi_perfil.ini
+    ```
+2.  **Edita tu perfil:** Abre `config/profiles/mi_perfil.ini` y ajusta los parámetros según tus necesidades (ej. `window_title` para el software de facturación, `sheet_name`, `column_mapping`, etc.).
 
-## Uso
+## 🏃 Uso
 
-Para ejecutar el bot, utiliza el script `src/main.py` desde la raíz del proyecto, especificando el perfil a usar y el archivo de entrada.
+Para ejecutar el bot, utiliza el script `src/main.py` desde la raíz del proyecto, especificando el nombre del perfil de configuración a usar y la ruta al archivo Excel de entrada.
 
 ```bash
 python src/main.py --profile <nombre_del_perfil> --input-file <ruta_al_archivo_excel>
@@ -80,8 +146,27 @@ python src/main.py --profile <nombre_del_perfil> --input-file <ruta_al_archivo_e
 python src/main.py --profile dev_nancy --input-file data/samples/facturacion_ejemplo.xlsx
 ```
 
-## Desarrollo y Arquitectura
+## ✅ Testing y Calidad de Código
 
-Para una guía detallada sobre la arquitectura del sistema, las decisiones de diseño, los patrones de codificación y la hoja de ruta técnica, consulta el siguiente documento:
+El proyecto utiliza `pytest` para su suite de pruebas, asegurando la funcionalidad de los componentes y previniendo regresiones. Se promueve un enfoque de desarrollo guiado por pruebas (TDD) para las nuevas funcionalidades críticas, garantizando la robustez y la fiabilidad del sistema.
 
-- **[Guía de Arquitectura y Desarrollo](./docs/ARCHITECTURE.md)**
+Para ejecutar las pruebas:
+```bash
+pytest
+```
+
+## 🗺️ Hoja de Ruta (Roadmap)
+
+El proyecto está en constante evolución. Los próximos pasos clave para mejorar la robustez y la funcionalidad incluyen:
+
+-   **Implementación Completa de la Máquina de Estados Finitos (FSM):** Refactorizar el `RemoteAutomator` para un control de flujo más granular y una gestión de estados explícita.
+-   **Manejo Avanzado de Errores:** Integración de excepciones personalizadas y el patrón `Command` para permitir la reversión de operaciones y una recuperación de errores inteligente.
+-   **Sondeo Dinámico de GUI:** Reemplazar las esperas estáticas (`time.sleep()`) por bucles de sondeo que verifiquen el estado real de la GUI antes de proceder, mejorando la fiabilidad.
+-   **Estrategia de Automatización "Local":** Explorar la implementación de una estrategia de automatización que se ejecute en la misma máquina que el software de facturación, aprovechando APIs de accesibilidad si están disponibles.
+-   **Expansión de la Cobertura de Pruebas:** Aumentar la cobertura de pruebas, incluyendo mocking avanzado para simular interacciones con la GUI sin depender de un entorno real.
+
+## 📚 Documentación Detallada
+
+Para una inmersión profunda en la visión arquitectónica, las decisiones de diseño, los patrones de implementación y la hoja de ruta técnica detallada del proyecto, consulte el documento de arquitectura:
+
+-   **[Guía de Arquitectura y Desarrollo](./docs/ARCHITECTURE.md)**
