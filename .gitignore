@@ -20,3 +20,8 @@ data/input/*.xls
 # Reportes de pruebas y cobertura
 .coverage
 htmlcov/
+
+# Archivos de evaluación generados
+docs/recruiter_evaluation.txt
+docs/technical_evaluation_report.txt
+docs/academic_technical_review.txt
