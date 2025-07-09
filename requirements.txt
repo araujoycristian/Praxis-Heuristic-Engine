@@ -4,27 +4,29 @@
 #
 #    pip-compile --output-file=requirements.txt requirements.in
 #
-coverage[toml]==7.9.0
+coverage[toml]==7.9.2
     # via pytest-cov
 et-xmlfile==2.0.0
     # via openpyxl
 iniconfig==2.1.0
     # via pytest
-numpy==2.3.0
+numpy==2.3.1
     # via pandas
 openpyxl==3.1.5
     # via -r requirements.in
 packaging==25.0
     # via pytest
-pandas==2.3.0
+pandas==2.3.1
     # via -r requirements.in
 pluggy==1.6.0
     # via
     #   pytest
     #   pytest-cov
-pygments==2.19.1
+pygments==2.19.2
     # via pytest
-pytest==8.4.0
+pyperclip==1.9.0
+    # via -r requirements.in
+pytest==8.4.1
     # via
     #   -r requirements.in
     #   pytest-cov
