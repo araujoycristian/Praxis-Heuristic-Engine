@@ -9,8 +9,9 @@ from typing import List
 import pandas as pd
 
 from src.automation.abc.automator_interface import AutomatorInterface
+from src.automation.common.results import TaskResult, TaskResultStatus
 from src.config_loader import ConfigLoader
-from src.core.constants import ConfigKeys, ConfigSections, LogicalFields
+from src.core.constants import ConfigKeys, ConfigSections
 from src.core.models import FacturacionData
 from src.data_handler.filter import DataFilterer
 from src.data_handler.loader import ExcelLoader
@@ -94,9 +95,16 @@ class Orchestrator:
                 self._export_error_report(invalid_df, profile_config)
 
             if valid_df.empty:
-                self.logger.info(
-                    "No se encontraron registros válidos para procesar. Finalizando."
+                self.logger.warning(
+                    "El pipeline de datos descartó todos los registros. "
+                    "Revisa los criterios de filtro y validación en el perfil."
                 )
+                self._generate_summary_report(
+                    raw_df=raw_df,
+                    valid_df=valid_df,
+                    results=[]
+                )
+                self.logger.info("No se encontraron registros válidos para procesar. Finalizando.")
                 return
 
             facturacion_tasks = self._transform_to_dataclasses(valid_df, profile_config)
@@ -107,20 +115,33 @@ class Orchestrator:
             # --- Fase de Automatización ---
             if self.automator and facturacion_tasks:
                 self.logger.info("Iniciando la fase de automatización...")
+                task_results = []
                 try:
                     self.automator.initialize(profile_config)
-                    self.automator.process_billing_tasks(facturacion_tasks)
+                    task_results = self.automator.process_billing_tasks(facturacion_tasks)
+
                 except Exception as e:
                     self.logger.critical(
-                        f"Error fatal en la fase de automatización: {e}", exc_info=True
+                        f"Error fatal durante la fase de automatización: {e}", exc_info=True
                     )
                 finally:
-                    # Garantiza que los recursos del automator se liberen siempre.
+                    self.logger.info("Generando reporte de resumen final...")
+                    self._generate_summary_report(
+                        raw_df=raw_df,
+                        valid_df=valid_df,
+                        results=task_results
+                    )
                     self.automator.shutdown()
+
                 self.logger.info("Fase de automatización finalizada.")
             else:
                 self.logger.info(
                     "Omitiendo fase de automatización: no hay tareas válidas o no se configuró un automator."
+                )
+                self._generate_summary_report(
+                    raw_df=raw_df,
+                    valid_df=valid_df,
+                    results=[]
                 )
 
             self.logger.info("Orquestación finalizada exitosamente.")
@@ -133,6 +154,60 @@ class Orchestrator:
                 f"Ha ocurrido un error fatal durante la orquestación: {e}", exc_info=True
             )
             raise
+
+    def _generate_summary_report(
+        self, raw_df: pd.DataFrame, valid_df: pd.DataFrame, results: List[TaskResult]
+    ):
+        self.logger.info("Generando reporte de resumen de ejecución...")
+
+        success_count = sum(1 for r in results if r.status == TaskResultStatus.SUCCESS)
+        failed_tasks = [r for r in results if r.status != TaskResultStatus.SUCCESS]
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        report_lines = [
+            "==================================================",
+            f"  Reporte de Ejecución - {timestamp}",
+            "==================================================",
+            f"Tareas iniciales en Excel: {len(raw_df)}",
+            f"Tareas tras filtro/validación: {len(valid_df)}",
+            f"Tareas procesadas por el automator: {len(results)}",
+            f"  - Exitosas: {success_count}",
+            f"  - Fallidas: {len(failed_tasks)}",
+            "--------------------------------------------------",
+        ]
+
+        if not valid_df.empty and len(results) == 0 and self.automator:
+            report_lines.append("ADVERTENCIA: Ninguna tarea fue procesada por el automator, aunque había tareas válidas.")
+            report_lines.append("Esto puede indicar una interrupción temprana del proceso o un fallo en la inicialización.")
+            report_lines.append("--------------------------------------------------")
+
+        if failed_tasks:
+            report_lines.append("Detalle de Tareas Fallidas:")
+            for task in failed_tasks:
+                report_lines.append(
+                    f"  - ID: {task.task_identifier} | "
+                    f"Paso: {task.failed_at_state.name if task.failed_at_state else 'N/A'} | "
+                    f"Motivo: {task.status.name} | "
+                    f"Error: {task.message}"
+                )
+        elif len(results) > 0:
+            report_lines.append("¡Todas las tareas procesadas se completaron exitosamente!")
+
+        report_lines.append("==================================================")
+
+        report_content = "\n".join(report_lines)
+
+        report_dir = self.output_dir / "reports"
+        report_dir.mkdir(parents=True, exist_ok=True)
+        report_filename = f"summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        report_path = report_dir / report_filename
+
+        try:
+            with open(report_path, "w", encoding="utf-8") as f:
+                f.write(report_content)
+            self.logger.info(f"Reporte de resumen guardado en: {report_path}")
+        except IOError as e:
+            self.logger.error(f"No se pudo escribir el archivo de reporte: {e}")
 
     def _validate_profile_config(self, config: ConfigParser, profile_name: str):
         """Valida que el perfil de configuración contenga las secciones y claves necesarias."""
@@ -202,38 +277,36 @@ class Orchestrator:
         for row in dataframe.itertuples(index=False):
             try:
                 task_data = {
-                    LogicalFields.NUMERO_HISTORIA: str(
-                        getattr(row, sane_mapping[LogicalFields.NUMERO_HISTORIA])
+                    "numero_historia": str(
+                        getattr(row, sane_mapping["numero_historia"])
                     ),
-                    'identificacion': str(
-                        getattr(row, sane_mapping['identificacion'])
+                    "identificacion": str(
+                        getattr(row, sane_mapping["identificacion"])
                     ),
-                    LogicalFields.DIAGNOSTICO_PRINCIPAL: str(
-                        getattr(row, sane_mapping[LogicalFields.DIAGNOSTICO_PRINCIPAL])
+                    "diagnostico_principal": str(
+                        getattr(row, sane_mapping["diagnostico_principal"])
                     ),
-                    LogicalFields.FECHA_INGRESO: pd.to_datetime(
-                        getattr(row, sane_mapping[LogicalFields.FECHA_INGRESO])
+                    "fecha_ingreso": pd.to_datetime(
+                        getattr(row, sane_mapping["fecha_ingreso"])
                     ).date(),
-                    LogicalFields.MEDICO_TRATANTE: str(
-                        getattr(row, sane_mapping[LogicalFields.MEDICO_TRATANTE])
+                    "medico_tratante": str(
+                        getattr(row, sane_mapping["medico_tratante"])
                     ),
-                    LogicalFields.EMPRESA_ASEGURADORA: str(
-                        getattr(row, sane_mapping[LogicalFields.EMPRESA_ASEGURADORA])
+                    "empresa_aseguradora": str(
+                        getattr(row, sane_mapping["empresa_aseguradora"])
                     ),
-                    LogicalFields.CONTRATO_EMPRESA: str(
-                        getattr(row, sane_mapping[LogicalFields.CONTRATO_EMPRESA])
+                    "contrato_empresa": str(
+                        getattr(row, sane_mapping["contrato_empresa"])
                     ),
-                    LogicalFields.ESTRATO: str(
-                        getattr(row, sane_mapping[LogicalFields.ESTRATO])
+                    "estrato": str(getattr(row, sane_mapping["estrato"])),
+                    "diagnostico_adicional_1": self._get_optional_field(
+                        row, sane_mapping.get("diagnostico_adicional_1")
                     ),
-                    LogicalFields.DIAGNOSTICO_ADICIONAL_1: self._get_optional_field(
-                        row, sane_mapping.get(LogicalFields.DIAGNOSTICO_ADICIONAL_1)
+                    "diagnostico_adicional_2": self._get_optional_field(
+                        row, sane_mapping.get("diagnostico_adicional_2")
                     ),
-                    LogicalFields.DIAGNOSTICO_ADICIONAL_2: self._get_optional_field(
-                        row, sane_mapping.get(LogicalFields.DIAGNOSTICO_ADICIONAL_2)
-                    ),
-                    LogicalFields.DIAGNOSTICO_ADICIONAL_3: self._get_optional_field(
-                        row, sane_mapping.get(LogicalFields.DIAGNOSTICO_ADICIONAL_3)
+                    "diagnostico_adicional_3": self._get_optional_field(
+                        row, sane_mapping.get("diagnostico_adicional_3")
                     ),
                 }
                 tasks.append(FacturacionData(**task_data))
