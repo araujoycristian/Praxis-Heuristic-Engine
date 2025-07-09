@@ -5,11 +5,17 @@ from configparser import ConfigParser, NoOptionError, NoSectionError
 from typing import List
 
 from src.automation.abc.automator_interface import AutomatorInterface
+from src.automation.common.states import TaskState
 from src.automation.strategies.remote.handlers.main_window_handler import (
     MainWindowHandler,
 )
 from src.automation.strategies.remote.remote_control import RemoteControlFacade
 from src.core.constants import ConfigSections
+from src.core.exceptions import (
+    ApplicationStateNotReadyError,
+    ClipboardError,
+    PatientIDMismatchError,
+)
 from src.core.models import FacturacionData
 
 
@@ -33,6 +39,9 @@ class RemoteAutomator(AutomatorInterface):
         # Los handlers se inicializarán en la fase de `initialize`.
         # Se definen aquí con type hints para claridad y autocompletado.
         self.main_window_handler: MainWindowHandler | None = None
+
+        # NUEVA LÍNEA: Inicializa el valor
+        self.max_retries: int = 0
 
     def initialize(self, config: ConfigParser) -> None:
         """
@@ -70,9 +79,13 @@ class RemoteAutomator(AutomatorInterface):
                 remote_control=self.facade, config=self.config
             )
 
-            # En el futuro, aquí se instanciarían otros handlers:
-            # self.ingreso_handler = IngresoHandler(...)
-            # self.suministros_handler = SuministrosHandler(...)
+            # NUEVAS LÍNEAS: Lee el valor de reintentos desde el config
+            self.max_retries = self.config.getint(
+                "AutomationRetries", "max_retries", fallback=1
+            )
+            self.logger.info(
+                f"Configuración de reintentos cargada: {self.max_retries} reintentos máximos por acción."
+            )
 
             self.logger.info("Todos los handlers de automatización han sido inicializados.")
 
@@ -90,57 +103,78 @@ class RemoteAutomator(AutomatorInterface):
             raise
 
     def process_billing_tasks(self, tasks: List[FacturacionData]) -> None:
-        """
-        Itera sobre una lista de tareas y ejecuta el flujo de automatización
-        completo para cada una, delegando las acciones a los handlers.
-
-        Incluye un manejo de errores robusto para que el fallo en una tarea no
-        detenga el procesamiento del resto de la lista.
-
-        Args:
-            tasks: La lista de objetos FacturacionData a procesar.
-        """
         task_count = len(tasks)
         self.logger.info(f"Iniciando el procesamiento de {task_count} tarea{'s' if task_count != 1 else ''}.")
 
-        # Guard Clause: Verifica que la inicialización fue exitosa antes de continuar.
         if not self.main_window_handler:
-            raise RuntimeError(
-                "El automator no puede procesar tareas porque el handler principal no fue inicializado. "
-                "Verifique los logs de la fase de inicialización."
-            )
+            raise RuntimeError("El automator no puede procesar tareas porque el handler principal no fue inicializado.")
 
         for i, task in enumerate(tasks, 1):
             self.logger.info(
                 f"--- [ Tarea {i}/{task_count} ] Procesando Historia Clínica: {task.numero_historia} ---"
             )
-            try:
-                # El flujo de trabajo se define aquí, llamando a los métodos de los handlers en secuencia.
-                # Para el Hito 2, el flujo es simple: buscar paciente e iniciar nueva factura.
-                self.main_window_handler.find_patient(task)
-                self.main_window_handler.initiate_new_billing()
 
-                # Aquí se añadirían más pasos en el futuro:
-                # self.ingreso_handler.fill_data(task)
-                # self.suministros_handler.process_medicines(task)
-                # ... etc.
+            # --- Motor de la Máquina de Estados para UNA Tarea ---
+            current_state = TaskState.READY_FOR_NEW_TASK
+            retry_count = 0
+            
+            # Este bucle representa el ciclo de vida de una única tarea.
+            while True:
+                self.logger.debug(f"Estado actual: {current_state.name}, Reintentos: {retry_count}")
+                
+                try:
+                    # ---- Definición de Transiciones de Estado ----
+                    if current_state == TaskState.READY_FOR_NEW_TASK:
+                        retry_count = 0 # Resetea reintentos para la nueva tarea
+                        current_state = TaskState.ENSURING_INITIAL_STATE
 
-                self.logger.info(
-                    f"Tarea para la historia {task.numero_historia} completada exitosamente."
-                )
+                    elif current_state == TaskState.ENSURING_INITIAL_STATE:
+                        self.main_window_handler.ensure_initial_state()
+                        current_state = TaskState.FINDING_PATIENT
 
-            except Exception as e:
-                # Si ocurre un error en CUALQUIER paso de la tarea actual, se captura aquí.
-                # Se registra el error detalladamente, pero el bucle `for` continuará con la siguiente tarea.
-                self.logger.error(
-                    f"Falló la tarea para la historia {task.numero_historia}. Error: {e}",
-                    exc_info=True,
-                )
-                # En el futuro, este bloque podría tomar una captura de pantalla del error
-                # y añadir la tarea a un reporte de fallos.
-                self.logger.warning(
-                    f"Saltando a la siguiente tarea debido al error anterior."
-                )
+                    elif current_state == TaskState.FINDING_PATIENT:
+                        # find_patient ahora incluye la validación.
+                        self.main_window_handler.find_patient(task)
+                        current_state = TaskState.INITIATING_NEW_BILLING
+
+                    elif current_state == TaskState.INITIATING_NEW_BILLING:
+                        self.main_window_handler.initiate_new_billing()
+                        # Por ahora, este es el último paso exitoso del Hito 3.
+                        current_state = TaskState.TASK_SUCCESSFUL
+
+                    # ---- Estados Terminales ----
+                    elif current_state == TaskState.TASK_SUCCESSFUL:
+                        self.logger.info(f"Tarea para la historia {task.numero_historia} COMPLETADA con éxito.")
+                        break  # Sale del bucle `while` y pasa a la siguiente tarea en el `for`.
+
+                    elif current_state == TaskState.TASK_FAILED:
+                        self.logger.error(f"Tarea para la historia {task.numero_historia} FALLÓ y no se pudo recuperar.")
+                        # Aquí se podría añadir la tarea a un reporte de fallos.
+                        break # Sale del bucle `while` y pasa a la siguiente tarea.
+
+                # ---- Manejo de Errores y Transiciones a Fallo/Reintento ----
+                except (ApplicationStateNotReadyError, ClipboardError) as e:
+                    self.logger.warning(f"Error REINTENTABLE en estado {current_state.name}: {e}")
+                    if retry_count < self.max_retries:
+                        retry_count += 1
+                        self.logger.info(f"Intentando de nuevo... (Intento {retry_count}/{self.max_retries})")
+                        self.remote_control.wait(1.0) # Pequeña pausa antes de reintentar
+                    else:
+                        self.logger.error(f"Se alcanzó el máximo de reintentos ({self.max_retries}). La tarea ha fallado.")
+                        current_state = TaskState.TASK_FAILED
+                
+                except PatientIDMismatchError as e:
+                    # Este error no es reintentable, va directo al fallo.
+                    self.logger.critical(f"Error CRÍTICO NO REINTENTABLE en estado {current_state.name}: {e}")
+                    current_state = TaskState.TASK_FAILED
+
+                except Exception as e:
+                    # Captura cualquier otro error inesperado para evitar que el script se detenga.
+                    self.logger.critical(
+                        f"Error INESPERADO en estado {current_state.name}. La tarea ha fallado. Error: {e}",
+                        exc_info=True # Proporciona el traceback completo en los logs.
+                    )
+                    current_state = TaskState.TASK_FAILED
 
         self.logger.info("Procesamiento de todas las tareas finalizado.")
 
