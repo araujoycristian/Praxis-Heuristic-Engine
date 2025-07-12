@@ -1,7 +1,7 @@
 # Bot de Automatización de Facturación Médica
 
 ![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+![License](https://img.shields.io/badge/License-GPLv3-green.svg)
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg) <!-- Placeholder: Conectar a CI/CD real -->
 ![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg) <!-- Placeholder: Conectar a CI/CD real -->
 
