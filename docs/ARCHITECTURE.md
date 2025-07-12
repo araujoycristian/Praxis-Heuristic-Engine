@@ -89,6 +89,9 @@ El flujo implementado para cada tarea es el siguiente:
 
 Si bien el motor de la FSM es robusto, hay varias áreas clave para la evolución del sistema.
 
+*   **Gestión de Secretos y Seguridad:**
+    *   **Externalización de Secretos:** Actualmente, valores sensibles como `window_title` se almacenan en archivos `.ini`. Aunque estos archivos están en el `.gitignore`, la estrategia más robusta es externalizarlos completamente del directorio del proyecto usando **variables de entorno** y un archivo `.env` para el desarrollo local. Esto evita cualquier riesgo de exposición accidental.
+
 *   **Operabilidad y Diagnóstico:**
     *   **Reporte de Ejecución:** Generar un archivo de resumen (`resumen.txt`) con estadísticas de éxito/fallo.
     *   **Observabilidad Visual:** Tomar una captura de pantalla del escritorio en caso de una excepción crítica no controlada.

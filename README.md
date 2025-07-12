@@ -42,9 +42,12 @@ El diseño de este bot se basa en principios de ingeniería de software robustos
 -   **Máquina de Estados Finitos (FSM):** El flujo de automatización es controlado por una FSM robusta que gestiona el ciclo de vida de cada tarea, proporcionando un control preciso y estados bien definidos (búsqueda, validación, etc.).
 -   **Manejo de Errores y Reintentos:** Utiliza una jerarquía de excepciones personalizadas para identificar errores específicos (`PatientIDMismatchError`, `ClipboardError`). Incluye un mecanismo de reintentos configurable para fallos transitorios.
 -   **Validación Explícita ("Percepción"):** Implementa el patrón "Clipboard Sentinel" para verificar de manera fiable que los datos correctos se han cargado en la GUI, eliminando las frágiles esperas de tiempo fijo.
+-   **Reporte de Ejecución y Errores:**
+    -   Genera un **reporte de resumen** (`.txt`) al final de cada ejecución, detallando las tareas exitosas y fallidas con el motivo del error.
+    -   Genera un **informe de errores** (`.xlsx`) para los registros que no cumplen con los criterios de validación inicial, facilitando la depuración de los datos de entrada.
 -   **Pipeline de Datos Robusto:** Carga, filtra y valida datos de facturación desde archivos Excel (`.xlsx`), asegurando la integridad de la información antes de la automatización.
 -   **Interacción Cross-Platform con GUI:** Capacidad de controlar aplicaciones de escritorio tanto en entornos Windows (utilizando `pywinauto`) como Linux (utilizando `xdotool`).
--   **Reporte de Errores:** Generación automática de informes en formato Excel para los registros que no cumplen con los criterios de validación, facilitando la depuración y corrección.
+
 
 ## 💻 Stack Tecnológico
 
@@ -160,11 +163,11 @@ pytest
 
 El proyecto está en constante evolución. Los próximos pasos clave para mejorar la robustez y la funcionalidad incluyen:
 
--   **Patrón Command para Reversión:** Implementar el patrón `Command` para encapsular cada acción, permitiendo operaciones de `undo` para devolver la GUI a un estado seguro en caso de fallo.
+-   **Observabilidad Mejorada:** Integrar capturas de pantalla automáticas en caso de un fallo crítico para facilitar el diagnóstico post-mortem.
+-   **Patrón Command para Reversión:** Implementar el patrón `Command` para encapsular cada acción, permitiendo operaciones de `undo` para devolver la GUI a un estado seguro en caso de fallo en flujos complejos.
 -   **Sondeo Dinámico de GUI:** Reemplazar las esperas estáticas (`time.sleep()`) por bucles de sondeo que verifiquen el estado real de la GUI antes de proceder, mejorando la fiabilidad.
--   **Estrategia de Automatización "Local":** Explorar la implementación de una estrategia de automatización que se ejecute en la misma máquina que el software de facturación.
+-   **Idempotencia y Reanudación:** Implementar un log de progreso para poder reanudar ejecuciones interrumpidas sin duplicar trabajo en tareas ya completadas.
 -   **Expansión de la Cobertura de Pruebas:** Aumentar la cobertura de pruebas, incluyendo mocking avanzado para simular interacciones con la GUI sin depender de un entorno real.
--   **Observabilidad Mejorada:** Integrar capturas de pantalla automáticas en caso de fallo y generar un reporte de resumen al finalizar la ejecución.
 
 ## 📚 Documentación Detallada
 

@@ -14,7 +14,14 @@ data/input/*.xls
 # Si guardas logs con información sensible
 *.log
 
-# Archivos de configuración con secretos (si los hubiera, ej. .env)
+# Archivos de configuración con secretos
+# Ignorar todos los perfiles de configuración para no subir datos sensibles.
+config/profiles/*.ini
+
+# EXCEPCIÓN: No ignorar el archivo de ejemplo para que sirva de plantilla.
+!config/profiles/dev_example.ini
+
+# Archivos de entorno (la solución más robusta a futuro)
 .env
 
 # Reportes de pruebas y cobertura
