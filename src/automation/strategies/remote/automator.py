@@ -2,6 +2,8 @@
 
 import logging
 from configparser import ConfigParser, NoOptionError, NoSectionError
+from datetime import datetime
+from pathlib import Path
 from typing import List
 
 from src.automation.abc.automator_interface import AutomatorInterface
@@ -157,14 +159,45 @@ class RemoteAutomator(AutomatorInterface):
                 except Exception as e:
                     self.logger.critical(
                         f"Error INESPERADO en estado {current_state.name}. La tarea ha fallado. Error: {e}",
-                        exc_info=True
+                        exc_info=True,
                     )
-                    results.append(TaskResult(
-                        status=TaskResultStatus.FAILED_UNEXPECTED_ERROR,
-                        task_identifier=task.numero_historia,
-                        message=str(e),
-                        failed_at_state=current_state
-                    ))
+
+                    # --- INICIO: LÓGICA DE CAPTURA DE PANTALLA ---
+                    try:
+                        # Define una ruta base para las capturas, consistente con la estructura del proyecto.
+                        screenshot_dir = Path("data/output/screenshots")
+                        
+                        # Limpia el identificador de la tarea para crear un nombre de archivo seguro.
+                        safe_task_id = "".join(
+                            c for c in task.numero_historia if c.isalnum() or c in ('-', '_')
+                        ).rstrip()
+
+                        # Construye un nombre de archivo descriptivo para el diagnóstico.
+                        filename = (
+                            f"FAILURE_{datetime.now().strftime('%Y%m%d_%H%M%S')}_"
+                            f"{safe_task_id}_{current_state.name}.png"
+                        )
+                        file_path = screenshot_dir / filename
+                        
+                        # Delega la acción a la fachada.
+                        self.facade.take_screenshot(file_path)
+
+                    except Exception as screenshot_err:
+                        # Si la captura falla, no debe detener el flujo principal de reporte de errores.
+                        self.logger.warning(
+                            "ATENCIÓN: Falló el intento de tomar la captura de pantalla de diagnóstico. "
+                            f"El proceso de reporte continuará. Error de captura: {screenshot_err}"
+                        )
+                    # --- FIN: LÓGICA DE CAPTURA DE PANTALLA ---
+
+                    results.append(
+                        TaskResult(
+                            status=TaskResultStatus.FAILED_UNEXPECTED_ERROR,
+                            task_identifier=task.numero_historia,
+                            message=str(e),
+                            failed_at_state=current_state,
+                        )
+                    )
                     current_state = TaskState.TASK_FAILED
 
         self.logger.info("Procesamiento de todas las tareas finalizado.")
