@@ -15,6 +15,12 @@ if sys.platform == 'win32':
         from pywinauto.findwindows import ElementNotFoundError
     except ImportError:
         raise ImportError("pywinauto no está instalado. Por favor, instálalo con 'pip install pywinauto'")
+    from pathlib import Path
+    try:
+        # Pillow es la librería que realmente hace la captura
+        from PIL import ImageGrab
+    except ImportError:
+        raise ImportError("Pillow no está instalado. Por favor, instálalo con 'pip install Pillow'")
 
 class RemoteControlFacade:
     """
@@ -142,3 +148,29 @@ class RemoteControlFacade:
             
         self.logger.debug(f"Lectura de portapapeles exitosa. Contenido: '{content[:50]}...'")
         return content
+
+    def take_screenshot(self, file_path: Path) -> None:
+        """
+        Toma una captura de pantalla del escritorio completo y la guarda en la ruta especificada.
+
+        Args:
+            file_path: La ruta completa (incluyendo nombre de archivo) donde se guardará la imagen.
+        
+        Raises:
+            Exception: Si la operación de captura o guardado falla.
+        """
+        self.logger.info(f"Tomando captura de pantalla de diagnóstico. Destino: {file_path}")
+        try:
+            # Asegura que el directorio de destino exista antes de intentar guardar.
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Pillow se encarga de la captura del escritorio completo.
+            image = ImageGrab.grab()
+            image.save(file_path)
+            
+            self.logger.info("Captura de pantalla guardada exitosamente.")
+        except Exception as e:
+            # Si algo sale mal (ej. permisos de escritura), lo registramos
+            # y dejamos que la excepción se propague para que el llamador se entere.
+            self.logger.error(f"Falló la operación de tomar/guardar la captura de pantalla: {e}")
+            raise

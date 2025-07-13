@@ -7,3 +7,4 @@ pyperclip
 # Nuevas dependencias para pruebas
 pytest
 pytest-cov
+Pillow
