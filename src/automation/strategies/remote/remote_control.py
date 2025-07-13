@@ -4,23 +4,30 @@ import logging
 import subprocess
 import sys
 import time
+from pathlib import Path  # <-- MOVIDO AL NIVEL SUPERIOR
 
 import pyperclip
+# --- Importación Segura de Dependencias de Captura ---
+try:
+    # Pillow es la librería estándar para manipulación de imágenes en Python.
+    from PIL import ImageGrab
+except ImportError:
+    # Si Pillow no está instalado, definimos ImageGrab como None.
+    # Esto permite que el módulo se importe sin errores, pero fallará en tiempo
+    # de ejecución si se intenta usar la funcionalidad, lo cual es el comportamiento deseado.
+    ImageGrab = None
+
 from src.core.exceptions import ClipboardError, FocusError
 
-# --- Importación Condicional ---
+# --- Importación Condicional Específica de Windows ---
 if sys.platform == 'win32':
     try:
         from pywinauto import Desktop
         from pywinauto.findwindows import ElementNotFoundError
     except ImportError:
+        # Este error es fatal solo si realmente se está ejecutando en Windows.
         raise ImportError("pywinauto no está instalado. Por favor, instálalo con 'pip install pywinauto'")
-    from pathlib import Path
-    try:
-        # Pillow es la librería que realmente hace la captura
-        from PIL import ImageGrab
-    except ImportError:
-        raise ImportError("Pillow no está instalado. Por favor, instálalo con 'pip install Pillow'")
+
 
 class RemoteControlFacade:
     """
@@ -152,25 +159,41 @@ class RemoteControlFacade:
     def take_screenshot(self, file_path: Path) -> None:
         """
         Toma una captura de pantalla del escritorio completo y la guarda en la ruta especificada.
+        Esta funcionalidad solo está implementada para Windows. En otros sistemas operativos,
+        se registrará una advertencia y la acción será omitida.
 
         Args:
             file_path: La ruta completa (incluyendo nombre de archivo) donde se guardará la imagen.
         
         Raises:
-            Exception: Si la operación de captura o guardado falla.
+            Exception: Si la operación de captura o guardado falla en Windows.
         """
-        self.logger.info(f"Tomando captura de pantalla de diagnóstico. Destino: {file_path}")
-        try:
-            # Asegura que el directorio de destino exista antes de intentar guardar.
-            file_path.parent.mkdir(parents=True, exist_ok=True)
+        self.logger.info(f"Intentando tomar captura de pantalla de diagnóstico. Destino: {file_path}")
+
+        if sys.platform == 'win32':
+            if not ImageGrab:
+                # Este error solo debería ocurrir si Pillow no se instaló correctamente.
+                self.logger.error("La librería Pillow (PIL) no está disponible. No se puede tomar la captura.")
+                raise ImportError("Pillow no está instalado, imposible tomar captura de pantalla.")
             
-            # Pillow se encarga de la captura del escritorio completo.
-            image = ImageGrab.grab()
-            image.save(file_path)
-            
-            self.logger.info("Captura de pantalla guardada exitosamente.")
-        except Exception as e:
-            # Si algo sale mal (ej. permisos de escritura), lo registramos
-            # y dejamos que la excepción se propague para que el llamador se entere.
-            self.logger.error(f"Falló la operación de tomar/guardar la captura de pantalla: {e}")
-            raise
+            try:
+                # Asegura que el directorio de destino exista antes de intentar guardar.
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Pillow se encarga de la captura del escritorio completo.
+                image = ImageGrab.grab()
+                image.save(file_path)
+                
+                self.logger.info("Captura de pantalla guardada exitosamente en Windows.")
+            except Exception as e:
+                # Si algo sale mal (ej. permisos de escritura), lo registramos
+                # y dejamos que la excepción se propague para que el llamador se entere.
+                self.logger.error(f"Falló la operación de tomar/guardar la captura de pantalla en Windows: {e}")
+                raise
+        else:
+            self.logger.warning(
+                f"La toma de capturas de pantalla no está implementada para el sistema operativo '{sys.platform}'. "
+                "Se omite la acción."
+            )
+            # No hacemos nada más. Esto es crucial para que los tests unitarios
+            # se puedan ejecutar sin problemas en un entorno de CI/CD o en un S.O. no Windows.

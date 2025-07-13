@@ -8,3 +8,4 @@ pyperclip
 pytest
 pytest-cov
 Pillow
+pytest-mock
