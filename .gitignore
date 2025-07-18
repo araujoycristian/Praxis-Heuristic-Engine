@@ -30,3 +30,9 @@ htmlcov/
 
 # Archivos de evaluación generados
 docs/eval_*.txt
+
+# Ignorar artefactos de ejecución generados por el bot
+data/output/
+
+# Ignorar archivos de bloqueo temporales de editores de hojas de cálculo
+*.~lock.*#
