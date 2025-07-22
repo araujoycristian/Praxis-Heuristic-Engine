@@ -7,7 +7,7 @@ from saf.state.application_state import ApplicationState
 from saf.ui.main_window import MainWindow
 from saf.handlers.event_handlers import EventHandlers
 
-# Configuración básica de logging para poder ver lo que hace el SAF en la terminal.
+# Configuración centralizada del logging para el SAF.
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - SAF - %(name)-20s - %(levelname)-8s - %(message)s")
 
 def main():
@@ -25,23 +25,10 @@ def main():
         # 2. Crear la Vista (la ventana raíz de Tkinter).
         root = tk.Tk()
         
-        # --- INICIO: LÓGICA DE INYECCIÓN DE DEPENDENCIAS MVC ---
-        # El siguiente bloque resuelve la dependencia circular (Vista necesita conocer
-        # al Controlador para vincular eventos, y el Controlador necesita conocer a la
-        # Vista para leer datos de ella).
-
-        # 3. Crear el Controlador. Se le pasa una referencia `None` a la vista
-        #    inicialmente para romper la dependencia circular.
+        # 3. Ensamblar la arquitectura mediante Inyección de Dependencias.
         handlers = EventHandlers(model, None)
-        
-        # 4. Crear la instancia completa de la Vista, pasándole la raíz y los manejadores
-        #    ya instanciados. La Vista ahora conoce a su Controlador.
         view = MainWindow(root, handlers)
-        
-        # 5. Completar el círculo: ahora que la vista existe, se la inyectamos
-        #    al controlador. El Controlador ahora conoce a su Vista.
-        handlers.view = view
-        # --- FIN: LÓGICA DE INYECCIÓN DE DEPENDENCIAS MVC ---
+        handlers.view = view # Completar el ciclo inyectando la vista en el controlador.
 
         # --- Lanzamiento de la Aplicación ---
         view.start()
@@ -50,9 +37,6 @@ def main():
         # Si ApplicationState lanza un error al no poder cargar los datos,
         # lo capturamos aquí, lo mostramos en la consola y salimos limpiamente.
         logging.critical(f"No se pudo iniciar la aplicación SAF. Error: {e}")
-        # Opcional: Mostrar una ventana de error simple si se quisiera.
-        # import tkinter.messagebox
-        # tkinter.messagebox.showerror("Error Crítico del SAF", str(e))
 
 if __name__ == "__main__":
     main()
