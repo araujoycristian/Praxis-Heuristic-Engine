@@ -1,166 +1,187 @@
-# Bot de Automatización de Facturación Médica
+# **High-Resilience RPA Agent for Desktop Automation**
 
-![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
-![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
-![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg) <!-- Placeholder: Conectar a CI/CD real -->
-![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg) <!-- Placeholder: Conectar a CI/CD real -->
+![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue)
+![License](https://img.shields.io/badge/License-Apache_2.0-blue)
+[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen)](tests/) 
+[![Code Style](https://img.shields.io/badge/Code_Style-Black-black)](https://github.com/psf/black)
 
-## 🚀 Demostración Visual
+This project is a **high-resilience Robotic Process Automation (RPA) Agent**, engineered to interact with legacy Windows desktop software, particularly in remote environments. While its initial mission is to automate medical billing, its architecture is fundamentally a **generic, configuration-driven automation engine**. Its reliability is ensured by a unique local GUI simulator, the **Stunt Action Facsimile (SAF)**, and its future is guided by an evolution towards situational awareness via an explicit GUI map (`GuiMap`).
 
-![Demo del Bot en Acción](docs/demo.gif) <!-- **ACCIÓN REQUERIDA:** Reemplazar con un GIF real del bot interactuando con el SAF o el sistema real. -->
+## 🚀 Visual Demonstration
 
-_Un breve GIF mostrando el bot automatizando la entrada de datos en el sistema de facturación._
+![Demo of the Bot in Action](docs/demo.gif)
+_The bot in action, interacting with the Stunt Action Facsimile (SAF) to process a batch of invoices._
 
-## 🎯 El Desafío
+---
 
-En el sector de la facturación médica, la entrada manual de datos en sistemas legados o de escritorio es una tarea repetitiva, propensa a errores humanos y que consume una cantidad significativa de tiempo y recursos. Esto no solo ralentiza los procesos administrativos, sino que también puede llevar a discrepancias en la facturación y a una baja eficiencia operativa.
+## 🎯 The Challenge: The Hidden Cost of Manual Processes
 
-## ✨ La Solución: Automatización Inteligente
+> The manual data entry required by many legacy systems is a critical operational bottleneck. It's a repetitive, high-stakes process that inevitably leads to:
+> -   **Critical Errors:** A single transcription mistake can cause claim rejections, delaying revenue for weeks and requiring costly rework.
+> -   **Wasted Human Potential:** Hours of skilled staff time are consumed by low-value tasks instead of complex problem-solving.
+> -   **Inhibited Scalability:** Processing capacity is hard-limited by headcount, directly hindering business growth.
 
-Este proyecto presenta un **Bot de Automatización de Procesos (RPA)** diseñado específicamente para abordar este desafío. El bot automatiza de manera inteligente el flujo de trabajo de facturación médica, desde la lectura y validación de datos hasta su inserción precisa en un software de facturación a través de la automatización de la interfaz de usuario (GUI) de un escritorio remoto.
+## ✨ The Solution: A Conscious and Reliable Software Agent
 
-**Beneficios Clave:**
-- **Reducción Drástica de Errores:** Elimina la posibilidad de errores tipográficos y de transcripción.
-- **Aumento de la Eficiencia:** Procesa grandes volúmenes de datos en una fracción del tiempo que tomaría manualmente.
-- **Optimización de Recursos:** Libera al personal para tareas de mayor valor añadido.
-- **Resiliencia y Fiabilidad:** Diseñado para ser robusto y manejar interrupciones inesperadas.
+This is not a simple "copy-and-paste" script. It is a software agent built on robust architectural pillars to ensure stable, maintainable, and adaptable operation.
 
-## 🏗️ Principios de Arquitectura y Diseño Clave
+## 🏗️ Core Architectural Principles
 
-El diseño de este bot se basa en principios de ingeniería de software robustos para garantizar mantenibilidad, escalabilidad y resiliencia:
+1.  **Modular, Layered Design:** A strict separation of concerns (`data_handler`, `automation`, `core`) allows each component to be tested and evolved independently, fostering high cohesion and low coupling.
+2.  **Error Handling as Control Flow:** The agent's logic is governed by a **Finite State Machine (FSM)** which is, in turn, directed by a custom exception hierarchy. Errors are not terminal failures; they are **business events** that intelligently guide the bot toward retry states, controlled failure, or success.
+3.  **Philosophy of "Chaotic Input, Internal Order":** The system assumes external data sources (Excel files, GUI fields) are unpredictable. At the point of entry, all data is immediately sanitized, validated, and transformed into **immutable internal data models (`dataclasses`)**. This enforces a predictable, type-safe, and secure operational core.
+4.  **Configuration-Driven Behavior:** The agent has no hardcoded business logic. Its operational parameters, data mappings, and—critically—its knowledge of the environment (`GuiMap`) are externalized to `.ini` files. **The bot learns from its configuration.**
 
--   **Arquitectura Modular y por Capas:** El proyecto está estructurado en capas bien definidas (`data_handler`, `automation`, `core`), promoviendo una clara separación de responsabilidades, bajo acoplamiento y alta cohesión.
--   **Diseño Dirigido por Configuración:** El comportamiento operativo del bot se externaliza en archivos de configuración `.ini`. Esto permite una flexibilidad máxima, adaptando el bot a diferentes casos de uso sin modificar el código fuente.
--   **Inyección de Dependencias (DI):** Los componentes reciben sus dependencias desde un contexto externo, lo que mejora la testabilidad, facilita el mocking y promueve un diseño desacoplado.
--   **Desarrollo Guiado por Simulación (SAF):**
-    -   **Desafío:** Depender del software real, remoto y lento para el desarrollo y las pruebas ralentiza el ciclo de vida, impide la automatización en pipelines de CI/CD y dificulta la reproducción de errores.
-    -   **Solución:** Se ha desarrollado el **Stunt Action Facsimile (SAF)**, un simulador de GUI local de alta fidelidad. El SAF emula el comportamiento y la interfaz del software real, permitiendo desarrollar y ejecutar pruebas de integración de manera rápida, local y determinista.
--   **Evolución de "Ciego" a "Consciente":**
-    -   **Estado Actual:** La interacción se basa en una **Máquina de Estados Finitos (FSM)** que ejecuta secuencias de teclas predefinidas, validando el éxito mediante técnicas como el "Clipboard Sentinel". Esta es una estrategia robusta pero "ciega".
-    -   **Visión Futura:** La arquitectura está evolucionando para dotar al bot de un "mapa" explícito de la GUI (`GuiMap`) y un motor de navegación (`Navigator`), permitiéndole saber siempre *dónde* está y moverse con un propósito verificado.
+---
 
-## ⚙️ Características Principales (Estado Actual)
+## 🚀 Quick Start Guide
 
-### Automatización y Flujo de Trabajo
--   **Máquina de Estados Finitos (FSM):** Controla el ciclo de vida de cada tarea, proporcionando un control de flujo preciso (búsqueda, validación, llenado, etc.).
--   **Manejo de Errores y Reintentos:** Utiliza una jerarquía de excepciones personalizadas (`PatientIDMismatchError`, `ClipboardError`) con un mecanismo de reintentos configurable para fallos transitorios.
--   **Validación Explícita ("Percepción"):** Implementa el patrón "Clipboard Sentinel" para verificar de manera fiable que los datos correctos se han cargado en la GUI.
--   **Pipeline de Datos Robusto:** Carga, filtra y valida datos de facturación desde archivos Excel (`.xlsx`), asegurando la integridad de la información.
--   **Interacción Cross-Platform con GUI:** Capacidad de controlar aplicaciones de escritorio en Windows (`pywinauto`) y Linux (`xdotool`).
+### 1. Prerequisites
 
-### Desarrollo y Pruebas
--   **Stunt Action Facsimile (SAF) v0.2:** Un simulador de GUI local (basado en Tkinter) que:
-    -   Replica la interfaz y el flujo de trabajo del software de facturación real.
-    -   Utiliza una arquitectura MVC para una clara separación de estado, vista y lógica.
-    -   Permite el desarrollo y la ejecución de pruebas de integración rápidas y fiables sin depender del sistema remoto.
--   **Reporte Detallado de Ejecución:** Genera un resumen (`.txt`) de tareas exitosas/fallidas y un informe de errores (`.xlsx`) para datos de entrada inválidos.
+-   **Python 3.11+**
+-   **`pip`** and **`venv`** (included with modern Python installations).
+-   **On Linux:** `xdotool` is required for GUI interaction (`sudo apt-get install xdotool` or equivalent for your distribution).
 
-## 💻 Stack Tecnológico
+### 2. Installation
 
--   **Lenguaje:** Python 3.9+
--   **Automatización GUI:**
-    -   `pywinauto` (para Windows)
-    -   `xdotool` (para Linux)
--   **Manejo de Datos:**
-    -   `pandas`
-    -   `openpyxl`
--   **Configuración:** `configparser`
--   **Logging:** Módulo `logging` estándar
--   **Testing:**
-    -   `pytest` (framework de pruebas)
-    -   `tkinter` (para el simulador SAF)
-
-## 📂 Estructura del Proyecto
-
-```
-facturacion_medica_bot/
-├── config/                 # Perfiles de configuración (.ini).
-├── data/                   # Datos de entrada, salida y ejemplos.
-├── docs/                   # Documentación del proyecto (ej. ARCHITECTURE.md).
-├── saf/                    # Stunt Action Facsimile (simulador de GUI para pruebas).
-├── src/                    # Código fuente principal de la aplicación.
-│   ├── automation/         # Lógica de interacción con la GUI remota.
-│   ├── core/               # Componentes centrales: orquestador, modelos de datos.
-│   ├── data_handler/       # Módulos para cargar y validar datos.
-│   ├── ui/                 # Interfaces de usuario (CLI).
-│   ├── utils/              # Funciones de utilidad.
-│   └── main.py             # Punto de entrada de la aplicación.
-├── tests/                  # Pruebas unitarias y de integración.
-├── .python-version         # Define la versión de Python para pyenv.
-├── pytest.ini              # Configuración de Pytest.
-├── requirements.txt        # Dependencias del proyecto.
-└── README.md               # Este documento.
-```
-
-## 🚀 Guía de Inicio Rápido
-
-### 1. Prerrequisitos
--   **Python 3.9+** (se recomienda `pyenv`).
--   **`pip`** y **`venv`**.
--   **En Linux:** `sudo apt-get install xdotool`.
-
-### 2. Instalación
-1.  **Clona el repositorio:** `git clone <URL_DEL_REPOSITORIO>`
-2.  **Crea y activa un entorno virtual:**
+1.  **Clone the repository:**
     ```bash
-    python3 -m venv .venv && source .venv/bin/activate
+    git clone <URL_OF_YOUR_REPOSITORY>
+    cd facturacion_medica_bot
     ```
-3.  **Instala las dependencias:**
+
+2.  **Create and activate a virtual environment:**
+    ```bash
+    # For Linux / macOS
+    python3 -m venv .venv
+    source .venv/bin/activate
+
+    # For Windows
+    python -m venv .venv
+    .\.venv\Scripts\activate
+    ```
+
+3.  **Install the dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
 
-### 3. Configuración
-Copia un perfil de `config/profiles/` (ej. `dev_nancy.ini`) y ajústalo a tus necesidades, especialmente el `window_title` de la aplicación a automatizar.
+### 3. Configuration
 
-## 🏃 Uso
+The bot's behavior is managed through profiles located in `config/profiles/`.
 
-### Ejecutando el Bot
+1.  **Copy the example profile:**
+    ```bash
+    cp config/profiles/dev_example.ini config/profiles/my_profile.ini
+    ```
+2.  **Edit your profile:** Open `config/profiles/my_profile.ini` and adjust the settings. The most critical setting to start is `window_title` in the `[AutomationSettings]` section, which must match the exact title of the application window you want to automate.
+
+---
+
+## 🏃 Usage
+
+To run the bot, specify the configuration profile and the path to the input Excel file from the project root:
+
 ```bash
-python src/main.py --profile <nombre_del_perfil> --input-file <ruta_al_excel>
+python src/main.py --profile <your_profile_name> --input-file <path/to/your/file.xlsx>
 ```
-**Ejemplo:**
+
+**Example (running against the SAF simulator):**
 ```bash
-python src/main.py --profile dev_nancy --input-file data/samples/facturacion_ejemplo.xlsx
+python src/main.py --profile dev_saf --input-file data/samples/facturacion_anonymized.xlsx
 ```
 
-### Ejecutando el Simulador (SAF)
-Para desarrollo y pruebas, puedes ejecutar el simulador de GUI de forma independiente:
+---
+
+## 🛠️ A Developer-Centric Ecosystem (DevEx)
+
+Beyond the agent itself, the project is a complete ecosystem of tools and practices designed to accelerate development, ensure data safety, and maintain high code quality.
+
+-   **Stunt Action Facsimile (SAF): The Digital Dojo**
+    The SAF is the cornerstone of our quality and development strategy. It is a **digital twin** of the target application, written in `tkinter`, which enables:
+    -   An ultra-fast development and debugging loop without reliance on slow, unreliable remote connections.
+    -   Fully automated **end-to-end integration testing**, a capability notoriously difficult to achieve in desktop RPA.
+    -   A true CI/CD pipeline, allowing for confident, frequent deployments.
+
+-   **Supporting Toolchain (`scripts/`)**
+    -   **`anonymize_data.py`:** A powerful utility to generate safe, realistic test data from production files, using configuration profiles to define anonymization rules.
+    -   **`generate_mapping_profile.py`:** An intelligent assistant that inspects an Excel file and bootstraps a configuration profile, dramatically reducing setup time.
+    -   **`find_windows.py`:** A helper script to discover the exact titles of running windows for easy configuration.
+
+-   **Professional Dependency Management**
+    The project uses `pip-tools` (`requirements.in`/`.txt`) for deterministic and secure dependency management, ensuring identical environments from development to production.
+
+---
+
+## 💻 Recommended Development Workflow
+
+The project is designed for a fast, safe, and efficient development loop using the SAF simulator.
+
+#### Step A: Run the Simulator (SAF)
+The SAF is your primary development environment. Launch it first.
 ```bash
+# In your first terminal, launch the Stunt Action Facsimile
 python saf/app.py
 ```
 
-## ✅ Testing y Calidad de Código
-
-El proyecto utiliza `pytest` para las pruebas. La piedra angular de nuestra estrategia de calidad es el **Stunt Action Facsimile (SAF)**, que nos permite ejecutar pruebas de integración completas en un entorno controlado y predecible. Esto valida el flujo de trabajo de extremo a extremo, desde la lectura de datos hasta la interacción con la GUI simulada, garantizando que la lógica del bot sea correcta antes de desplegarla en el entorno de producción.
-
-Para ejecutar todas las pruebas:
+#### Step B: Run the Bot against the Simulator
+In a separate terminal, run the bot using the dedicated SAF profile. This allows you to test and debug your logic in a controlled, local environment.
 ```bash
+# In a second terminal, execute the bot, pointing it at the SAF
+python src/main.py --profile dev_saf --input-file data/samples/facturacion_anonymized.xlsx
+```
+
+## ✅ Testing Strategy
+
+Our quality strategy is centered on **automated integration tests against the SAF**. This allows us to validate the bot's end-to-end behavior in a fast, deterministic, and controlled environment. Unit tests are used to verify pure business logic within isolated components (e.g., `DataFilterer`, `GuiMapLoader`).
+
+```bash
+# Run the full test suite (unit and integration)
 pytest
 ```
 
-## 🗺️ Hoja de Ruta Evolutiva: Hacia la Autonomía
+## 📂 Project Structure
+```
+facturacion_medica_bot/
+├── config/                 # Configuration profiles (.ini) and the GUI map.
+├── data/                   # Input, output, samples, and reports.
+├── docs/                   # Architectural documentation.
+├── saf/                    # Source code for the Stunt Action Facsimile (Simulator).
+├── scripts/                # Developer support toolchain.
+├── src/                    # The bot's main source code.
+│   ├── automation/         # Automation logic, FSM, and navigation engine.
+│   ├── core/               # Orchestrator, data models, and custom exceptions.
+│   ├── data_handler/       # Data loading, filtering, and validation pipeline.
+│   └── main.py             # Application entry point.
+├── tests/                  # Unit and integration tests.
+├── requirements.in         # Abstract dependencies (for pip-tools).
+├── requirements.txt        # Frozen dependencies (generated).
+└── README.md               # This document.
+```
 
-El proyecto sigue una hoja de ruta clara para transformar al bot de un simple automatizador a un agente inteligente y resiliente.
+## 🗺️ Evolutionary Roadmap: The Path to Autonomy
 
-### **Hito 5: El Cartógrafo y el Navegante Consciente (En Desarrollo)**
-*   **Objetivo:** Eliminar la navegación "ciega" basada en secuencias de teclas fijas.
-*   **Componentes Clave:**
-    1.  **`GuiMap`:** Un mapa explícito de la topología de la GUI (pestañas, campos, puntos de referencia) externalizado a un archivo de configuración. El bot *aprenderá* la estructura de la aplicación.
-    2.  **`Navigator`:** Un motor de navegación que utiliza el `GuiMap` para moverse de forma transaccional y verificada. Sabrá cómo ir del campo A al campo B y confirmará su llegada.
-*   **Resultado:** El bot sabrá *dónde* está en todo momento, sentando las bases para una resiliencia sin precedentes.
+The project is on a deliberate path to evolve from a sequence-following automaton into an intelligent, situationally-aware agent.
 
-### **Hito 6: El Agente Resiliente y Autocorregible (Planificado)**
-*   **Objetivo:** Dotar al bot de la capacidad de detectar, diagnosticar y recuperarse de interrupciones inesperadas (ej. pop-ups de error, cambios en la GUI).
-*   **Componentes Clave:**
-    1.  **Léxico de Interrupciones:** El `GuiMap` se ampliará para catalogar anomalías conocidas y sus soluciones (ej. "Si aparece el pop-up 'Error de Conexión', presiona ENTER").
-    2.  **Protocolo de Recuperación Jerárquico:** Cuando el `Navigator` falle, activará un protocolo:
-        *   Primero, buscará interrupciones conocidas y las resolverá.
-        *   Si no hay interrupciones, buscará "puntos de referencia" (`landmarks`) para reorientarse.
-*   **Resultado:** Los fallos fatales se convertirán en contratiempos manejables. El bot no solo seguirá instrucciones, sino que se adaptará y autocorregirá.
+### **Hito 5: The Cartographer & The Conscious Navigator (In Progress)**
+-   **Mission:** To replace fragile, "blind" navigation with a system that understands the GUI's structure.
+-   **Key Artifacts:**
+    -   **`GuiMap`:** A data model, loaded from a `.ini` file, that serves as the bot's "map" of the world. It defines the layout and relationship of tabs, fields, and landmarks.
+    -   **`Navigator`:** A navigation engine that uses the `GuiMap` to plan and execute verified movements, confirming its arrival at each destination.
+-   **Outcome:** The bot will know **where it is** at all times, eliminating an entire class of brittle failures.
 
-## 📚 Documentación Detallada
+### **Hito 6: The Resilient & Self-Correcting Agent (Planned)**
+-   **Mission:** To empower the bot to handle the unexpected.
+-   **Key Artifacts:**
+    -   **Recovery Protocol:** When a navigation fails, the `Navigator` will activate a protocol to:
+        1.  **Detect Known Interruptions:** Identify known pop-ups or dialogs (cataloged in the `GuiMap`) and execute the correct recovery action (e.g., press `{ESC}`).
+        2.  **Reorient via Landmarks:** If lost, the agent will actively search for a known `landmark` to recalibrate its position on the map.
+-   **Outcome:** The bot will graduate from **failing on an error** to **actively solving it**. It will adapt and self-correct, achieving a superior level of autonomy.
 
-Para una inmersión profunda en la visión arquitectónica, las decisiones de diseño y los patrones de implementación, consulte el documento:
+## 📚 Further Reading
 
--   **[Guía de Arquitectura y Desarrollo](./docs/ARCHITECTURE.md)**
+For a deep dive into design decisions and implementation patterns, see the:
+-   **[Architectural Decision Record & Development Guide](./docs/ARCHITECTURE.md)**
+
+## ⚖️ License
+This project is licensed under the Apache 2.0 License. A full `LICENSE` file will be added to the repository shortly.

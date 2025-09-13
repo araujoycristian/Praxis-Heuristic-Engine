@@ -1,113 +1,121 @@
 ## **Guía de Arquitectura y Desarrollo: Proyecto de Automatización de Facturación Médica**
 
-**Versión:** 3.0 (Post-Hito 3 y 4.1: FSM y Reporte de Operabilidad)
-**Propósito:** Este documento es la **fuente única de verdad** para la arquitectura del sistema. Consolida las decisiones de diseño, describe el estado actual de la implementación y guía el desarrollo de nuevas funcionalidades de manera coherente, robusta y escalable.
+**Versión:** 4.5 (Hoja de Ruta Estratégica para Hitos 4.5+)
+**Propósito:** Este documento es un **artefacto vivo** que consolida las decisiones de diseño, describe el estado actual de la implementación y, fundamentalmente, traza la **hoja de ruta evolutiva** del proyecto. Su objetivo es guiar el desarrollo de manera coherente, robusta y escalable.
 
 ### **1. Filosofía y Principios Fundamentales**
 
-*   **Separación de Responsabilidades (SoC):** Cada componente tiene una única y bien definida responsabilidad (ej. `Loader` carga, `Validator` valida, `Automator` automatiza).
-*   **Bajo Acoplamiento, Alta Cohesión:** Los módulos interactúan a través de interfaces abstractas (`AutomatorInterface`) y contratos de datos explícitos (`TaskResult`), minimizando las dependencias directas.
-*   **Inyección de Dependencias (DI):** Los componentes reciben sus dependencias desde un contexto externo (`Orchestrator` inyecta `ConfigParser` y `RemoteControlFacade` en los `Handlers`), lo que facilita las pruebas unitarias y el mocking.
-*   **Desarrollo Guiado por Configuración:** El comportamiento operativo (títulos de ventana, tiempos de espera, secuencias de teclas, número de reintentos) se externaliza a archivos de configuración (`.ini`), permitiendo ajustes sin modificar el código fuente.
-*   **Falla Rápido y de Forma Controlada:** El sistema está diseñado para fallar de manera explícita y temprana. Las **excepciones personalizadas** no son solo errores; actúan como **eventos** que dirigen el flujo de la Máquina de Estados, permitiendo una gestión de errores inteligente y centralizada.
+El diseño del sistema se rige por un conjunto de principios que priorizan la resiliencia, la mantenibilidad y la adaptabilidad a largo plazo.
 
-### **2. Arquitectura General de la Solución**
+*   **Separación de Responsabilidades (SoC):** Cada componente tiene una única y bien definida responsabilidad (ej. `Loader` carga, `Validator` valida, `Navigator` navega).
+*   **Bajo Acoplamiento, Alta Cohesión:** Los módulos interactúan a través de interfaces abstractas y contratos de datos explícitos, minimizando las dependencias directas y permitiendo su evolución independiente.
+*   **Inyección de Dependencias (DI):** Los componentes son "ensamblados" en un punto de composición central (`Orchestrator`), lo que facilita las pruebas unitarias, el mocking y la sustitución de implementaciones.
+*   **Desarrollo Guiado por Configuración:** El comportamiento operativo y el conocimiento del entorno (títulos de ventana, timeouts, y crucialmente, el mapa de la GUI) se externalizan a archivos `.ini`. El bot **aprende de su configuración**, no se codifica para un solo escenario.
+*   **Inmutabilidad y Flujo de Datos Unidireccional:** Los datos de entrada, una vez validados, se transforman en modelos inmutables (`dataclasses(frozen=True)`). Estos objetos fluyen a través del sistema sin ser modificados, garantizando la predictibilidad y eliminando una clase entera de errores por efectos secundarios.
+*   **Falla Rápido, Falla Inteligentemente:** Las **excepciones personalizadas** no son meros errores; actúan como **eventos de negocio** que dirigen el flujo de la Máquina de Estados, permitiendo una gestión de errores granular y estratégica (reintentar, abortar, reportar).
+*   **Desarrollo Guiado por Simulación:** El desarrollo y las pruebas se desacoplan del entorno de producción real mediante el **Stunt Action Facsimile (SAF)**, un gemelo digital que permite un ciclo de vida de desarrollo rápido y fiable.
 
-#### **2.1. Arquitectura por Capas**
+### **2. Arquitectura General y Componentes Clave**
 
 El sistema adopta una arquitectura de capas estricta para garantizar una clara separación de responsabilidades:
 
 ```
-   [ UI (main.py, CLI/GUI) ]              <-- Capa de Interfaz de Usuario
+   [ UI (main.py, CLI) ]                    <-- Capa de Interfaz de Usuario
              ↓
-   [ Core (Orchestrator) ]                <-- Capa de Orquestación
+   [ Core (Orchestrator) ]                  <-- Capa de Orquestación y Composición
              ↓
-   --------------------------------------
-   |                                    |
-[ Data Pipeline ]     [ Automation Pipeline ]  <-- Capas de Lógica de Negocio
-(Loader, Filterer,      (Automator, Handlers,
- Validator, etc.)       RemoteControl, etc.)
+   ---------------------------------------------------------------------
+   |                                       |                           |
+[ Data Pipeline ]     [ Automation Pipeline ]     [ Navigation Engine (FUTURO) ] <-- Capas de Lógica de Negocio
+(Loader, Filterer,      (Automator, FSM,            (GuiMap, Navigator,
+ Validator)             Handlers)                   FieldInteractor)
 ```
 
-#### **2.2. Estructura de Componentes Clave (Implementados)**
+| Componente Clave | Responsabilidad Principal |
+| :--- | :--- |
+| **`Orchestrator`** | Cerebro de la aplicación. Ensambla y coordina los pipelines. Genera los reportes finales de ejecución. |
+| **`Data Pipeline`** | Ingesta de datos: carga, sanea, filtra y valida los datos de entrada, produciendo `dataclasses` inmutables y limpias. |
+| **`RemoteAutomator`** | Orquesta la **Máquina de Estados Finitos (FSM)** que gobierna el ciclo de vida de cada tarea, manejando el flujo, los reintentos y la recuperación de errores. |
+| **`Handlers`** | Encapsulan la **lógica de negocio de un workflow específico** (ej. búsqueda de paciente, selección de suministros). Delegan la interacción física a otros componentes. |
+| **`RemoteControlFacade`**| **Capa de Abstracción de Hardware (HAL).** Traduce comandos abstractos a acciones del SO (`pywinauto`, `xdotool`), aislando al resto del sistema de la implementación específica de la plataforma. |
+| **`Navigator` (Futuro)** | El **GPS** del bot. Utilizará el `GuiMap` para calcular y ejecutar rutas de navegación de forma transaccional y verificada. |
+| **`GuiMap` (Futuro)** | El **modelo de datos del mundo**. Una representación en memoria, inmutable y validada, de la topología de la GUI. |
 
-| Componente | Ubicación | Responsabilidad Principal y Contrato Clave |
-| :--- | :--- | :--- |
-| **`exceptions.py`** | `src/core/exceptions.py` | Define `AutomationError` y un conjunto de excepciones personalizadas (`PatientIDMismatchError`, etc.) para un manejo de errores granular y dirigido por eventos. |
-| **`states.py`** | `src/automation/common/states.py` | Define el `Enum` `TaskState` con los estados lógicos de la Máquina de Estados Finitos (FSM). |
-| **`results.py`** | `src/automation/common/results.py`| Define el contrato de datos (`TaskResult`, `TaskResultStatus`) que comunica el resultado de cada tarea desde el `Automator` al `Orchestrator`. |
-| **`RemoteControlFacade`**| `src/automation/strategies/remote/remote_control.py` | Abstrae las interacciones de bajo nivel con la ventana. **Métodos clave:** `find_and_focus_window()`, `type_keys()`, `read_clipboard_with_sentinel()`. |
-| **`MainWindowHandler`** | `src/automation/strategies/remote/handlers/main_window_handler.py` | Implementa la lógica atómica para la ventana principal. **Métodos clave:** `ensure_initial_state()`, `find_patient()`, `validate_patient_loaded()`. |
-| **`RemoteAutomator`** | `src/automation/strategies/remote/automator.py` | Orquesta la FSM, gestiona el estado actual, la lógica de reintentos y la recuperación de errores a alto nivel. **Devuelve:** `List[TaskResult]`. |
-| **`Orchestrator`** | `src/core/orchestrator.py` | Coordina los pipelines de datos y automatización. **Responsabilidad clave:** Genera el reporte de resumen final a partir de los `TaskResult` recibidos. |
+### **3. La Arquitectura de Interacción: Una Evolución Estratégica**
 
-### **3. Estrategia de Automatización y Tácticas Implementadas**
+La estrategia de interacción del bot con la GUI ha evolucionado para superar las restricciones del entorno. Comprender esta evolución es clave para entender la hoja de ruta actual.
 
-#### **3.1. Restricción Fundamental: Interacción "Ciega"**
+#### **Fase 1: Interacción Ciega y Robusta (Estado Actual)**
 
-La estrategia se basa en controlar una ventana de escritorio remoto, lo que impone dos restricciones críticas:
-1.  **Control Exclusivo por Teclado:** No hay acceso a los controles de la GUI. Toda interacción se realiza enviando pulsaciones de teclas (`keystrokes`).
-2.  **Percepción Exclusiva por Portapapeles:** La única vía para recibir datos desde el SF es a través del portapapeles del sistema operativo.
+La arquitectura inicial fue diseñada para operar de forma "ciega" en un entorno remoto. Esta restricción forzó un diseño robusto basado en:
+1.  **Control Exclusivo por Teclado:** Toda interacción se realiza enviando pulsaciones de teclas.
+2.  **Percepción Exclusiva por Portapapeles:** La validación se logra mediante el patrón "Sentinel del Portapapeles" para leer el estado de los campos.
+3.  **Navegación Relativa:** El movimiento entre campos se basa en secuencias de teclas predefinidas (ej. `{TAB 2}`).
 
-#### **3.2. Tácticas de Interacción y Percepción**
+**Evaluación:** Este enfoque es funcional y resiliente a fallos transitorios (gracias a la FSM y los reintentos), pero su **principal debilidad es la fragilidad**. Un cambio menor en el layout de la GUI (ej. un nuevo campo) puede romper las secuencias de navegación y requerir una caza de errores y una modificación del código.
 
-Para operar de forma fiable bajo estas restricciones, se han implementado los siguientes patrones:
+### **4. Revisión Estratégica y Hoja de Ruta Evolutiva (Post-Hito 4.1)**
 
-*   **Navegación Relativa por Teclado:** Se utilizan secuencias de teclas (`{TAB 2}`, `{ESC 3}`) para mover el foco entre campos. Aunque funcionales, estas secuencias son frágiles y candidatas a ser externalizadas a la configuración en el futuro.
-*   **Principio de "Pre-condición de Foco":** El método `_ensure_focus()` de la `RemoteControlFacade` se invoca antes de cada interacción crítica. Si la ventana pierde el foco y no se puede recuperar, se lanza una `FocusError`.
-*   **Patrón "Sentinel del Portapapeles":** El método `read_clipboard_with_sentinel()` distingue de forma inequívoca entre un campo de la GUI vacío y un fallo en la operación de copiado (`Ctrl+C`). Lanza `ClipboardError` si el comando de copia no tuvo efecto, eliminando ambigüedades.
+Tras la implementación exitosa de la FSM y el sistema de reportes, se ha realizado una revisión estratégica. La conclusión es que para alcanzar el siguiente nivel de autonomía y mantenibilidad, debemos abordar proactivamente la fragilidad de la navegación "ciega".
 
-### **4. Control de Flujo: La Máquina de Estados Finitos (FSM)**
+Se ha definido una hoja de ruta multi-hito diseñada para gestionar el riesgo y la complejidad, transformando al bot de un autómata a un **agente con consciencia situacional**.
 
-#### **4.1. FSM Dirigida por Excepciones**
+---
 
-El `RemoteAutomator` implementa una FSM. En lugar de un script secuencial, el proceso para cada tarea es una serie de transiciones entre estados definidos en `TaskState`. **Las excepciones personalizadas actúan como los eventos** que desencadenan estas transiciones, moviendo el flujo hacia estados de reintento o de fallo controlado.
+### **5. Detalle de la Hoja de Ruta**
 
-#### **4.2. Flujo de Búsqueda y Validación (Hito 3 Implementado)**
+#### **Hito 4.5: La Fundación del Navegante Consciente (Enfoque Actual)**
 
-1.  **`ENSURING_INITIAL_STATE`:** Se resetea la GUI a un estado conocido.
-2.  **`FINDING_PATIENT`:** Se busca al paciente y se invoca `validate_patient_loaded()`.
-3.  **Gestión de Resultados de la Validación:**
-    *   **Éxito:** Si el ID coincide, la FSM transiciona a `INITIATING_NEW_BILLING`.
-    *   **Fallo de Datos (`PatientIDMismatchError`):** La FSM transiciona a `TASK_FAILED` (error irrecuperable).
-    *   **Fallo Técnico (`ClipboardError`, `FocusError`):** La FSM reintenta la operación el número de veces configurado. Si los reintentos se agotan, transiciona a `TASK_FAILED`.
-4.  **`TASK_SUCCESSFUL`:** Tras el último paso exitoso, la FSM alcanza su estado terminal y el `Automator` genera un `TaskResult` de éxito.
+*   **Misión Estratégica:** Este hito es una decisión deliberada de **gestión de riesgos** para evitar una refactorización "big bang" del sistema de navegación. Su filosofía es **desacoplar la construcción de la integración**. Construimos y validamos el nuevo motor de navegación de forma completamente aislada, garantizando **cero regresiones** en el sistema existente durante esta fase. Es la construcción y prueba del andamiaje antes de tocar el edificio.
+*   **Enfoque Táctico:**
+    1.  **Modelado y Carga (Fases 1 y 2):** Se crea y prueba unitariamente la infraestructura para cargar el `GuiMap` desde `config/gui_map.ini`, estableciendo una fuente de verdad del entorno.
+    2.  **Validación de Cero Impacto (Fase 3 - Integración Pasiva):** El `GuiMap` se carga en memoria en el `RemoteAutomator` sin ser utilizado. El objetivo de este paso es **probar y garantizar** que el nuevo componente puede coexistir con el sistema actual sin introducir efectos secundarios.
+    3.  **Construcción Aislada del Motor (Fase 4):** Se desarrollan y prueban unitariamente los componentes `Navigator` y `FieldInteractor` contra *mocks*. Esto nos permite forjar un motor de navegación robusto y fiable en un entorno de laboratorio controlado, antes de que interactúe con el sistema real.
+*   **Resultado Esperado:** Al final de este hito, tendremos un **motor de navegación completo, probado y listo para ser usado**, pero el bot principal seguirá funcionando con su lógica de navegación original. Habremos reducido el riesgo del Hito 5 a casi cero.
 
-### **5. Operabilidad y Resiliencia**
+#### **Hito 5: El Cartógrafo y el Navegante Consciente (Refactorización y Activación)**
 
-#### **5.1. Características Implementadas (Hito 4.1)**
+*   **Misión:** Reemplazar por completo la lógica de navegación "ciega" en los `Handlers` con el nuevo motor de navegación construido en el Hito 4.5.
+*   **Enfoque Táctico:**
+    1.  **Inyección de Dependencias:** El `RemoteAutomator` inyectará la instancia del `FieldInteractor` en todos los `Handlers` relevantes.
+    2.  **Refactorización de Handlers:** Se reescribirá el código de los `Handlers` para que dejen de enviar secuencias de teclas y, en su lugar, utilicen la API semántica del `FieldInteractor` (ej. `interactor.write_to('numero_historia', ...)`).
+    3.  **Creación del `UIStateVerifier`:** Se implementará el nuevo handler responsable de asegurar el estado inicial, utilizando el `Navigator` para posicionarse y verificar el estado de la GUI de forma explícita.
+    4.  **Evolución del SAF (v0.3):** El SAF se actualizará para reflejar la estructura de pestañas y las anomalías de la GUI real, proporcionando un entorno de alta fidelidad para las pruebas de integración.
+    5.  **Nuevas Excepciones:** Se introducirá una nueva familia de excepciones (`NavigationError`, `LandmarkNotFoundError`) para comunicar fallos específicos del motor de navegación a la FSM.
+*   **Resultado Esperado:** El bot será funcionalmente idéntico al anterior, pero su código interno será drásticamente más simple, legible y **exponencialmente más robusto ante cambios en la GUI**. Toda la lógica de navegación estará centralizada, probada y será reutilizable.
 
-*   **Reporte de Resumen de Ejecución:** Al finalizar, el `Orchestrator` genera un archivo `summary_YYYYMMDD_HHMMSS.txt` en `data/output/reports/`. Este informe contiene estadísticas clave (tareas totales, exitosas, fallidas) y una lista detallada de los fallos, incluyendo el identificador de la tarea, el estado en que falló y el mensaje de error.
+#### **Hito 6: El Agente Resiliente y Autocorregible (Planificado)**
 
-#### **5.2. Próximos Pasos y Hoja de Ruta**
+*   **Misión:** Dotar al bot de la capacidad de detectar, diagnosticar y recuperarse de interrupciones inesperadas del entorno, transformando fallos fatales en contratiempos manejables.
+*   **Enfoque Táctico:**
+    1.  **Léxico de Interrupciones:** El `GuiMap` se ampliará para catalogar anomalías conocidas (ej. pop-ups de error) y sus respectivas acciones de recuperación.
+    2.  **Protocolo de Recuperación Jerárquico:** El `Navigator` será mejorado con una lógica que, en caso de fallo de navegación:
+        *   **Nivel 1 (Caza de Anomalías):** Buscará activamente interrupciones conocidas y ejecutará su solución.
+        *   **Nivel 2 (Reorientación por Landmarks):** Si no hay anomalías, el bot concluirá que está "perdido" e intentará reorientarse buscando un `landmark` conocido.
+*   **Resultado Esperado:** El bot pasará de **fallar ante un error** a **intentar resolverlo activamente**. Su fiabilidad para operaciones no supervisadas aumentará significativamente.
 
-*   **Mini-Hito 4.2: Observabilidad Visual en Fallos:** Implementar una "caja negra". Tomar una captura de pantalla del escritorio en caso de una excepción crítica e inesperada (`Exception` genérica) para facilitar el diagnóstico post-mortem.
-*   **Mini-Hito 4.3: Idempotencia y Resumibilidad:** Implementar un "marcapáginas" (`.progress.log`) para registrar tareas completadas y poder reanudar ejecuciones interrumpidas sin duplicar trabajo.
+### **6. Estrategia de Calidad y Experiencia de Desarrollador (DevEx)**
 
-*   **Visión a Futuro (Post-Hito 4):**
-    *   **Patrón `Command` para Reversión:** Para flujos más complejos (ej. facturación en múltiples pestañas), encapsular cada acción en un objeto `Command` con métodos `execute()` y `undo()`. Esto permitiría revertir una secuencia de pasos de forma segura si uno de ellos falla.
-    *   **De Esperas Estáticas a Sondeo Dinámico (Polling):** Reemplazar las últimas esperas fijas (`time.sleep()`) por bucles de sondeo que verifiquen activamente si la GUI está en el estado esperado antes de continuar.
-    *   **Detección Heurística de Diálogos Modales:** Implementar una táctica para detectar pop-ups inesperados y manejarlos de forma controlada.
+#### **6.1. Estrategia de Pruebas Jerárquica**
 
-### **6. Calidad de Código y Evolución de la Arquitectura**
+Nuestra estrategia de calidad se basa en una jerarquía de pruebas automatizadas que garantiza la robustez en cada nivel.
+*   **Pruebas Unitarias:** Se utilizan para la lógica de negocio pura y aislada (ej. `DataFilterer`, `GuiMapLoader`). Hacen uso extensivo de `pytest-mock` para aislar dependencias y garantizar que cada unidad de código funciona como se espera.
+*   **Pruebas de Integración:** Validan la colaboración entre los componentes del sistema. Nuestro enfoque principal es ejecutar el **flujo de automatización completo de extremo a extremo contra el SAF**. Esto nos permite verificar el comportamiento real del bot en un entorno controlado y repetible.
+*   **Automatización de Pruebas:** Usamos `fixtures` en `conftest.py` para gestionar el ciclo de vida del SAF (levantarlo antes de las pruebas, derribarlo después), permitiendo que toda la suite de pruebas se ejecute con un solo comando (`pytest`), lo que es ideal para la Integración Continua (CI/CD).
 
-Esta sección describe las prácticas y los objetivos a corto y largo plazo para asegurar la calidad del código, facilitar el desarrollo y guiar la evolución sostenible de la arquitectura del proyecto.
+#### **6.2. El Pilar Central: El Stunt Action Facsimile (SAF)**
 
-*   **Estrategia de Pruebas y Mocking (Objetivo a Corto Plazo):**
-    Nuestra arquitectura, basada en Inyección de Dependencias (DI), está diseñada para ser **altamente testeable**. El próximo paso clave en la madurez del proyecto es construir una suite de pruebas robusta que no dependa de una GUI real.
-    *   **Plan de Acción:**
-        1.  Crear un `MockRemoteControlFacade` que simule el comportamiento de la `RemoteControlFacade` real. Este mock podrá ser instruido para devolver valores específicos o lanzar excepciones (`PatientIDMismatchError`, `ClipboardError`) bajo demanda.
-        2.  Implementar **pruebas unitarias** para los `Handlers` (ej. `MainWindowHandler`), verificando que llaman a los métodos correctos de la fachada con los parámetros esperados.
-        3.  Implementar **pruebas de integración** para el `RemoteAutomator`, validando que la lógica de la FSM transiciona correctamente entre estados al recibir las excepciones simuladas desde el mock.
-    *   **Beneficio:** Acelerar drásticamente el ciclo de desarrollo y depuración, permitiendo validar la lógica de la FSM sin necesidad de ejecutar el bot contra la aplicación real.
+El SAF es la pieza central de nuestra estrategia de calidad y DevEx. Es un **gemelo digital** de la aplicación real que nos permite:
+*   **Desacoplar el Desarrollo:** Permite desarrollar y depurar el 99% de la lógica del bot de forma local y rápida.
+*   **Habilitar Pruebas de Integración Automatizadas:** Hace posible ejecutar la suite de pruebas completa en un pipeline de CI/CD.
+*   **Simular Escenarios de Falla:** Permite desarrollar y probar la lógica de resiliencia (Hito 6) de forma determinista.
 
-*   **Automatización del Desarrollo (CI/CD):**
-    Para formalizar nuestro compromiso con la calidad, se planea implementar un pipeline de Integración Continua (CI) utilizando herramientas como GitHub Actions.
-    *   **Propósito:** Automatizar la ejecución de la suite de pruebas y de linters (como `flake8` o `black`) en cada `push` al repositorio.
-    *   **Beneficio:** Garantizar la estabilidad del código, prevenir regresiones de forma temprana y mantener un estilo de código consistente en todo el proyecto.
+#### **6.3. Ecosistema de Herramientas de Soporte**
 
-*   **Visión a Largo Plazo: Hacia un Motor de Automatización Configurable:**
-    Actualmente, la FSM dentro del `RemoteAutomator` está diseñada específicamente para el flujo de trabajo de facturación. Una vez que este flujo esté completamente maduro y probado, la visión a largo plazo es evolucionar el `Automator` hacia un motor más genérico.
-    *   **Concepto:** Abstraer la definición del flujo de trabajo (los estados, las acciones y las transiciones) fuera del código Python, moviéndola a un formato de configuración como **YAML o JSON**.
-    *   **Ejemplo:** Un archivo YAML podría definir que desde el estado `FINDING_PATIENT`, una acción `validate_id` exitosa lleva al estado `INITIATING_BILLING`, mientras que una excepción `ID_MISMATCH` lleva al estado `TASK_FAILED`.
-    *   **Beneficio:** Permitiría que el mismo bot automatizara **múltiples procesos de negocio distintos** dentro del mismo SF, simplemente cargando un archivo de definición de flujo diferente, sin necesidad de modificar la lógica central del `RemoteAutomator`. Esto representa la máxima expresión del principio de "Desarrollo Guiado por Configuración".
+El proyecto incluye un conjunto de scripts (`scripts/`) para profesionalizar el flujo de trabajo, incluyendo herramientas para la **anonimización de datos de producción** y la **generación asistida de perfiles de configuración**.
+
+### **7. Visión a Largo Plazo: Hacia un Motor de Workflows Configurable**
+
+La arquitectura actual, con su FSM, y la futura, con el `Navigator` y `GuiMap`, son los cimientos para la visión a largo plazo del proyecto: un **motor de automatización genérico y configurable**.
+
+Una vez maduros, la definición de los "workflows" (las misiones o secuencias de negocio) se podrá abstraer de los `Handlers` de Python y moverse a un formato declarativo (ej. YAML o JSON). El `Automator` simplemente leería un archivo de workflow que define los estados, las acciones (`interactor.write_to(...)`) y las transiciones, permitiendo al mismo bot ejecutar **múltiples procesos de negocio distintos** sin modificar su código base. El Hito 5 es el paso más crítico hacia esta visión.
