@@ -47,7 +47,7 @@ This is not a simple "copy-and-paste" script. It is a software agent built on ro
 1.  **Clone the repository:**
     ```bash
     git clone <URL_OF_YOUR_REPOSITORY>
-    cd facturacion_medica_bot
+    cd Praxis-Heuristic-Engine
     ```
 
 2.  **Create and activate a virtual environment:**
@@ -142,7 +142,7 @@ pytest
 
 ## 📂 Project Structure
 ```
-facturacion_medica_bot/
+Praxis-Heuristic-Engine/
 ├── config/                 # Configuration profiles (.ini) and the GUI map.
 ├── data/                   # Input, output, samples, and reports.
 ├── docs/                   # Architectural documentation.
