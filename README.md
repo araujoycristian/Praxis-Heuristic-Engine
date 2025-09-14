@@ -1,187 +1,161 @@
-# **High-Resilience RPA Agent for Desktop Automation**
+# **Praxis Heuristic Engine**
 
+![Version](https://img.shields.io/badge/Version-0.8.0-orange)
 ![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue)
-[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen)](tests/) 
+[![Tests](https://img.shields.io/badge/Tests-Foundation_Ready-brightgreen)](tests/) 
 [![Code Style](https://img.shields.io/badge/Code_Style-Black-black)](https://github.com/psf/black)
 
-This project is a **high-resilience Robotic Process Automation (RPA) Agent**, engineered to interact with legacy Windows desktop software, particularly in remote environments. While its initial mission is to automate medical billing, its architecture is fundamentally a **generic, configuration-driven automation engine**. Its reliability is ensured by a unique local GUI simulator, the **Stunt Action Facsimile (SAF)**, and its future is guided by an evolution towards situational awareness via an explicit GUI map (`GuiMap`).
+El `Praxis Heuristic Engine` es un motor de **Robotic Process Automation (RPA)** de alta resiliencia, diseñado para interactuar con software de escritorio Windows heredado, especialmente en entornos remotos. Su nombre refleja su filosofía de diseño: **`Praxis`** (la aplicación de la teoría a la práctica) y **`Heuristic`** (la resolución inteligente de problemas en entornos inciertos).
 
-## 🚀 Visual Demonstration
+Aunque su misión inicial valida su capacidad en la facturación médica, su arquitectura es fundamentalmente la de un **motor de automatización genérico, guiado por configuración, capaz de ejecutar diversas "misiones" (workflows de negocio).**
 
-![Demo of the Bot in Action](docs/demo.gif)
-_The bot in action, interacting with the Stunt Action Facsimile (SAF) to process a batch of invoices._
+## 🚀 Demostración Visual
 
----
-
-## 🎯 The Challenge: The Hidden Cost of Manual Processes
-
-> The manual data entry required by many legacy systems is a critical operational bottleneck. It's a repetitive, high-stakes process that inevitably leads to:
-> -   **Critical Errors:** A single transcription mistake can cause claim rejections, delaying revenue for weeks and requiring costly rework.
-> -   **Wasted Human Potential:** Hours of skilled staff time are consumed by low-value tasks instead of complex problem-solving.
-> -   **Inhibited Scalability:** Processing capacity is hard-limited by headcount, directly hindering business growth.
-
-## ✨ The Solution: A Conscious and Reliable Software Agent
-
-This is not a simple "copy-and-paste" script. It is a software agent built on robust architectural pillars to ensure stable, maintainable, and adaptable operation.
-
-## 🏗️ Core Architectural Principles
-
-1.  **Modular, Layered Design:** A strict separation of concerns (`data_handler`, `automation`, `core`) allows each component to be tested and evolved independently, fostering high cohesion and low coupling.
-2.  **Error Handling as Control Flow:** The agent's logic is governed by a **Finite State Machine (FSM)** which is, in turn, directed by a custom exception hierarchy. Errors are not terminal failures; they are **business events** that intelligently guide the bot toward retry states, controlled failure, or success.
-3.  **Philosophy of "Chaotic Input, Internal Order":** The system assumes external data sources (Excel files, GUI fields) are unpredictable. At the point of entry, all data is immediately sanitized, validated, and transformed into **immutable internal data models (`dataclasses`)**. This enforces a predictable, type-safe, and secure operational core.
-4.  **Configuration-Driven Behavior:** The agent has no hardcoded business logic. Its operational parameters, data mappings, and—critically—its knowledge of the environment (`GuiMap`) are externalized to `.ini` files. **The bot learns from its configuration.**
+![Demo of the Engine in Action](docs/demo.gif)
+_El motor en acción, interactuando con el Stunt Action Facsimile (SAF) para procesar un lote de facturas._
 
 ---
 
-## 🚀 Quick Start Guide
+## 🎯 El Desafío: El Costo Oculto de los Procesos Manuales
 
-### 1. Prerequisites
+> La entrada manual de datos en sistemas heredados es un cuello de botella operativo crítico. Es un proceso repetitivo y de alto riesgo que conduce inevitablemente a:
+> -   **Errores Críticos:** Un solo error de transcripción puede causar el rechazo de reclamaciones, retrasando los ingresos durante semanas y exigiendo una costosa reelaboración.
+> -   **Potencial Humano Desperdiciado:** Horas de personal cualificado se consumen en tareas de bajo valor en lugar de en la resolución de problemas complejos.
+> -   **Escalabilidad Inhibida:** La capacidad de procesamiento está directamente limitada por el número de personas, lo que frena el crecimiento del negocio.
+
+## ✨ La Solución: Un Motor Práctico e Inteligente
+
+Esto no es un simple script de "copiar y pegar". Es un agente de software construido sobre robustos pilares arquitectónicos para garantizar un funcionamiento estable, mantenible y adaptable.
+
+## 🏗️ Principios Arquitectónicos Fundamentales
+
+1.  **Doctrina "Simulation-First":** La calidad y la velocidad del desarrollo se garantizan a través de un gemelo digital (`Stunt Action Facsimile - SAF`), permitiendo un desarrollo desacoplado y una suite de pruebas de integración totalmente automatizada.
+2.  **Motor de Workflows Genérico:** La lógica de negocio está diseñada para ser externalizada a "Manifiestos de Misión" declarativos. El motor no está acoplado a un único proceso.
+3.  **Manejo de Errores como Flujo de Control:** La lógica del agente es gobernada por una **Máquina de Estados Finitos (FSM)** que, a su vez, es dirigida por una jerarquía de excepciones personalizadas. Los errores no son fallos terminales; son **eventos de negocio** que guían inteligentemente al motor.
+4.  **Filosofía de "Caos Afuera, Orden Adentro":** El sistema asume que las fuentes de datos externas son impredecibles. En el punto de entrada, todos los datos son inmediatamente saneados, validados y transformados en **modelos de datos internos inmutables (`dataclasses`)**.
+5.  **Comportamiento Guiado por Configuración:** El motor no tiene lógica de negocio codificada. Sus parámetros operativos, mapeos de datos y (en el futuro) su conocimiento del entorno (`GuiMap`) se externalizan a archivos `.ini`. **El motor aprende de su configuración.**
+6.  **Experiencia del Desarrollador (DevEx) como Pilar:** El motor está acompañado por un ecosistema de herramientas (`scripts/`) y simuladores (`SAF`) diseñados para hacer que la configuración, las pruebas y la depuración de nuevas misiones sean un proceso rápido, intuitivo y fiable.
+
+---
+
+## 🚀 Guía de Inicio Rápido
+
+### 1. Prerrequisitos
 
 -   **Python 3.11+**
--   **`pip`** and **`venv`** (included with modern Python installations).
--   **On Linux:** `xdotool` is required for GUI interaction (`sudo apt-get install xdotool` or equivalent for your distribution).
+-   **`pip`** y **`venv`** (incluidos con las instalaciones modernas de Python).
+-   **En Linux:** `xdotool` es necesario para la interacción con la GUI (`sudo apt-get install xdotool` o equivalente para su distribución).
 
-### 2. Installation
+### 2. Instalación
 
-1.  **Clone the repository:**
+1.  **Clona el repositorio:**
     ```bash
-    git clone <URL_OF_YOUR_REPOSITORY>
+    git clone <URL_DEL_REPOSITORIO>
     cd Praxis-Heuristic-Engine
     ```
-
-2.  **Create and activate a virtual environment:**
+2.  **Crea y activa un entorno virtual:**
     ```bash
-    # For Linux / macOS
+    # Para Linux / macOS
     python3 -m venv .venv
     source .venv/bin/activate
 
-    # For Windows
+    # Para Windows
     python -m venv .venv
     .\.venv\Scripts\activate
     ```
-
-3.  **Install the dependencies:**
+3.  **Instala las dependencias:**
     ```bash
     pip install -r requirements.txt
     ```
 
-### 3. Configuration
-
-The bot's behavior is managed through profiles located in `config/profiles/`.
-
-1.  **Copy the example profile:**
-    ```bash
-    cp config/profiles/dev_example.ini config/profiles/my_profile.ini
-    ```
-2.  **Edit your profile:** Open `config/profiles/my_profile.ini` and adjust the settings. The most critical setting to start is `window_title` in the `[AutomationSettings]` section, which must match the exact title of the application window you want to automate.
-
 ---
 
-## 🏃 Usage
+## 🏃 Uso
 
-To run the bot, specify the configuration profile and the path to the input Excel file from the project root:
+Para ejecutar el motor, especifica el perfil de configuración y la ruta al archivo Excel de entrada desde la raíz del proyecto:
 
 ```bash
-python src/main.py --profile <your_profile_name> --input-file <path/to/your/file.xlsx>
+python src/main.py --profile <nombre_de_tu_perfil> --input-file <ruta/a/tu/archivo.xlsx>
 ```
 
-**Example (running against the SAF simulator):**
+**Ejemplo (ejecutando contra el simulador SAF):**
 ```bash
 python src/main.py --profile dev_saf --input-file data/samples/facturacion_anonymized.xlsx
 ```
 
 ---
 
-## 🛠️ A Developer-Centric Ecosystem (DevEx)
+## 🛠️ El Ecosistema DevEx: Nuestra "Planta de Producción"
 
-Beyond the agent itself, the project is a complete ecosystem of tools and practices designed to accelerate development, ensure data safety, and maintain high code quality.
+Más allá del propio agente, el proyecto es un ecosistema completo de herramientas y prácticas diseñadas para acelerar el desarrollo, garantizar la seguridad de los datos y mantener una alta calidad de código.
 
--   **Stunt Action Facsimile (SAF): The Digital Dojo**
-    The SAF is the cornerstone of our quality and development strategy. It is a **digital twin** of the target application, written in `tkinter`, which enables:
-    -   An ultra-fast development and debugging loop without reliance on slow, unreliable remote connections.
-    -   Fully automated **end-to-end integration testing**, a capability notoriously difficult to achieve in desktop RPA.
-    -   A true CI/CD pipeline, allowing for confident, frequent deployments.
+*   **`Stunt Action Facsimile` (SAF): El Dojo Digital**
+    El SAF es la piedra angular de nuestra estrategia de calidad. Es un **gemelo digital** de la aplicación de destino, escrito en `tkinter`, que permite un ciclo de desarrollo y depuración ultrarrápido sin depender de conexiones remotas.
 
--   **Supporting Toolchain (`scripts/`)**
-    -   **`anonymize_data.py`:** A powerful utility to generate safe, realistic test data from production files, using configuration profiles to define anonymization rules.
-    -   **`generate_mapping_profile.py`:** An intelligent assistant that inspects an Excel file and bootstraps a configuration profile, dramatically reducing setup time.
-    -   **`find_windows.py`:** A helper script to discover the exact titles of running windows for easy configuration.
+*   **El Taller del Artesano (`scripts/`)**
+    Una suite de herramientas de línea de comandos que profesionalizan el flujo de trabajo, incluyendo utilidades para la **anonimización de datos de producción**, la **generación asistida de perfiles de configuración** y el **descubrimiento de ventanas**.
 
--   **Professional Dependency Management**
-    The project uses `pip-tools` (`requirements.in`/`.txt`) for deterministic and secure dependency management, ensuring identical environments from development to production.
+*   **Gestión Profesional de Dependencias**
+    El proyecto utiliza `pip-tools` (`requirements.in`/`.txt`) para una gestión de dependencias determinista y segura, garantizando entornos idénticos desde el desarrollo hasta la producción.
 
 ---
 
-## 💻 Recommended Development Workflow
+## ✅ Estrategia de Calidad y Pruebas
 
-The project is designed for a fast, safe, and efficient development loop using the SAF simulator.
+Nuestra estrategia de calidad está centrada en nuestra **Doctrina "Simulation-First"**.
 
-#### Step A: Run the Simulator (SAF)
-The SAF is your primary development environment. Launch it first.
-```bash
-# In your first terminal, launch the Stunt Action Facsimile
-python saf/app.py
-```
+En la `v0.8.0`, esto se logra mediante una combinación de:
+1.  **Pruebas Unitarias** para la lógica de negocio pura y aislada.
+2.  **Validación Manual de Extremo a Extremo (E2E)** contra el SAF.
 
-#### Step B: Run the Bot against the Simulator
-In a separate terminal, run the bot using the dedicated SAF profile. This allows you to test and debug your logic in a controlled, local environment.
-```bash
-# In a second terminal, execute the bot, pointing it at the SAF
-python src/main.py --profile dev_saf --input-file data/samples/facturacion_anonymized.xlsx
-```
-
-## ✅ Testing Strategy
-
-Our quality strategy is centered on **automated integration tests against the SAF**. This allows us to validate the bot's end-to-end behavior in a fast, deterministic, and controlled environment. Unit tests are used to verify pure business logic within isolated components (e.g., `DataFilterer`, `GuiMapLoader`).
+El siguiente paso inmediato en nuestra hoja de ruta de calidad es **automatizar completamente el ciclo de vida del SAF dentro de nuestra suite de pruebas** (utilizando `fixtures` de `pytest`), lo que habilitará una verdadera Integración Continua (CI/CD) y una red de seguridad contra regresiones.
 
 ```bash
-# Run the full test suite (unit and integration)
+# Ejecutar la suite de pruebas actual
 pytest
 ```
 
-## 📂 Project Structure
+## 📂 Estructura del Proyecto
 ```
 Praxis-Heuristic-Engine/
-├── config/                 # Configuration profiles (.ini) and the GUI map.
-├── data/                   # Input, output, samples, and reports.
-├── docs/                   # Architectural documentation.
-├── saf/                    # Source code for the Stunt Action Facsimile (Simulator).
-├── scripts/                # Developer support toolchain.
-├── src/                    # The bot's main source code.
-│   ├── automation/         # Automation logic, FSM, and navigation engine.
-│   ├── core/               # Orchestrator, data models, and custom exceptions.
-│   ├── data_handler/       # Data loading, filtering, and validation pipeline.
-│   └── main.py             # Application entry point.
-├── tests/                  # Unit and integration tests.
-├── requirements.in         # Abstract dependencies (for pip-tools).
-├── requirements.txt        # Frozen dependencies (generated).
-└── README.md               # This document.
+├── config/                 # Perfiles de configuración (.ini) y el futuro GuiMap.
+├── data/                   # Datos de entrada, salida, muestras y reportes.
+├── docs/                   # La Biblioteca del Proyecto (nuestra fuente de verdad).
+├── saf/                    # El Stunt Action Facsimile (nuestro gemelo digital).
+├── scripts/                # El Taller del Artesano (herramientas de DevEx).
+├── src/                    # El código fuente del motor.
+│   ├── automation/         # Lógica de automatización, FSM y futuro motor de navegación.
+│   ├── core/               # Orquestador, modelos de datos y excepciones personalizadas.
+│   ├── data_handler/       # Pipeline de carga, filtrado y validación de datos.
+│   └── main.py             # Punto de entrada de la aplicación.
+├── tests/                  # Pruebas unitarias y de integración.
+├── requirements.in         # Dependencias abstractas (para pip-tools).
+├── requirements.txt        # Dependencias congeladas (generadas).
+└── README.md               # Este documento.
 ```
 
-## 🗺️ Evolutionary Roadmap: The Path to Autonomy
+## 🗺️ El Camino hacia la Autonomía: Nuestra Hoja de Ruta Estratégica
 
-The project is on a deliberate path to evolve from a sequence-following automaton into an intelligent, situationally-aware agent.
+El proyecto está en un camino deliberado para evolucionar de un autómata que sigue secuencias a un agente inteligente con conciencia situacional.
 
-### **Hito 5: The Cartographer & The Conscious Navigator (In Progress)**
--   **Mission:** To replace fragile, "blind" navigation with a system that understands the GUI's structure.
--   **Key Artifacts:**
-    -   **`GuiMap`:** A data model, loaded from a `.ini` file, that serves as the bot's "map" of the world. It defines the layout and relationship of tabs, fields, and landmarks.
-    -   **`Navigator`:** A navigation engine that uses the `GuiMap` to plan and execute verified movements, confirming its arrival at each destination.
--   **Outcome:** The bot will know **where it is** at all times, eliminating an entire class of brittle failures.
+### **Nivel 1: El Aprendiz (Las Reglas del Juego) - Hitos 0 & 1**
+*   **Misión:** Desacoplar el motor de un único workflow y enseñarle a validar la lógica de negocio de los datos que procesa.
+*   **Resultado:** Un `WorkflowEngine` genérico que lee "Manifiestos de Misión" y un `SanityValidator` que rechaza datos lógicamente absurdos.
 
-### **Hito 6: The Resilient & Self-Correcting Agent (Planned)**
--   **Mission:** To empower the bot to handle the unexpected.
--   **Key Artifacts:**
-    -   **Recovery Protocol:** When a navigation fails, the `Navigator` will activate a protocol to:
-        1.  **Detect Known Interruptions:** Identify known pop-ups or dialogs (cataloged in the `GuiMap`) and execute the correct recovery action (e.g., press `{ESC}`).
-        2.  **Reorient via Landmarks:** If lost, the agent will actively search for a known `landmark` to recalibrate its position on the map.
--   **Outcome:** The bot will graduate from **failing on an error** to **actively solving it**. It will adapt and self-correct, achieving a superior level of autonomy.
+### **Nivel 2: El Técnico (Dominio del Entorno Físico) - Hitos 2 & 3**
+*   **Misión:** Reemplazar la interacción "ciega" y frágil con un sistema que comprende la estructura de la GUI.
+*   **Resultado:** Un `Navigator` que utiliza un `GuiMap` para planificar y **verificar** cada movimiento, y una `PerceptionInterface` que permite añadir nuevos "sentidos" (como OCR) en el futuro.
 
-## 📚 Further Reading
+### **Nivel 3: El Veterano (Manejo del Caos) - Hito 4**
+*   **Misión:** Capacitar al motor para manejar lo inesperado.
+*   **Resultado:** Un protocolo de recuperación que permite al `Navigator` detectar, diagnosticar y recuperarse de interrupciones (ej. pop-ups), pasando de **fallar ante un error** a **resolverlo activamente**.
 
-For a deep dive into design decisions and implementation patterns, see the:
--   **[Architectural Decision Record & Development Guide](./docs/ARCHITECTURE.md)**
+## 📚 Biblioteca Completa del Proyecto
 
-## ⚖️ License
-This project is licensed under the Apache 2.0 License. A full `LICENSE` file will be added to the repository shortly.
+Para una inmersión profunda en las decisiones de diseño, los conceptos fundamentales, las guías prácticas y el manual de operaciones, consulte nuestra biblioteca de documentación completa.
+
+-   **[Entrar a la Biblioteca del Praxis Heuristic Engine](./docs/README.md)**
+
+## ⚖️ Licencia
+Este proyecto está licenciado bajo la **Licencia Apache 2.0**.
