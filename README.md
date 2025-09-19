@@ -8,7 +8,7 @@
 
 El `Praxis Heuristic Engine` es un motor de **Robotic Process Automation (RPA)** de alta resiliencia, diseñado para interactuar con software de escritorio Windows heredado, especialmente en entornos remotos. Su nombre refleja su filosofía de diseño: **`Praxis`** (la aplicación de la teoría a la práctica) y **`Heuristic`** (la resolución inteligente de problemas en entornos inciertos).
 
-Aunque su misión inicial valida su capacidad en la facturación médica, su arquitectura es fundamentalmente la de un **motor de automatización genérico, guiado por configuración, capaz de ejecutar diversas "misiones" (workflows de negocio).**
+Aunque su misión inicial valida su capacidad en la facturación médica, su arquitectura está diseñada para evolucionar hacia un **motor de automatización genérico, guiado por configuración y capaz de ejecutar diversas "misiones" (workflows de negocio).**
 
 ## 🚀 Demostración Visual
 
@@ -31,7 +31,7 @@ Esto no es un simple script de "copiar y pegar". Es un agente de software constr
 ## 🏗️ Principios Arquitectónicos Fundamentales
 
 1.  **Doctrina "Simulation-First":** La calidad y la velocidad del desarrollo se garantizan a través de un gemelo digital (`Stunt Action Facsimile - SAF`), permitiendo un desarrollo desacoplado y una suite de pruebas de integración totalmente automatizada.
-2.  **Motor de Workflows Genérico:** La lógica de negocio está diseñada para ser externalizada a "Manifiestos de Misión" declarativos. El motor no está acoplado a un único proceso.
+2.  **Arquitectura para un Motor Genérico:** La lógica del workflow está diseñada para ser externalizada a "Manifiestos de Misión" declarativos. La arquitectura habilita que el motor evolucione para no estar acoplado a un único proceso, como se detalla en nuestra hoja de ruta (Hito 0).
 3.  **Manejo de Errores como Flujo de Control:** La lógica del agente es gobernada por una **Máquina de Estados Finitos (FSM)** que, a su vez, es dirigida por una jerarquía de excepciones personalizadas. Los errores no son fallos terminales; son **eventos de negocio** que guían inteligentemente al motor.
 4.  **Filosofía de "Caos Afuera, Orden Adentro":** El sistema asume que las fuentes de datos externas son impredecibles. En el punto de entrada, todos los datos son inmediatamente saneados, validados y transformados en **modelos de datos internos inmutables (`dataclasses`)**.
 5.  **Comportamiento Guiado por Configuración:** El motor no tiene lógica de negocio codificada. Sus parámetros operativos, mapeos de datos y (en el futuro) su conocimiento del entorno (`GuiMap`) se externalizan a archivos `.ini`. **El motor aprende de su configuración.**

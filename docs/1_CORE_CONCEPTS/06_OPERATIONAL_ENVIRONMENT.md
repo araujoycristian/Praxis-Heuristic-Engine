@@ -126,3 +126,4 @@ A continuación se detalla la estructura y el propósito de estos artefactos:
 
 ---
 `[ Volver al Índice de la Biblioteca ]`
+---

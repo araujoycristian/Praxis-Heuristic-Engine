@@ -35,4 +35,6 @@ docs/eval_*.txt
 data/output/
 
 # Ignorar archivos de bloqueo temporales de editores de hojas de cálculo
-*.~lock.*#
+
+# Ingnorar
+docs/temporal_files/

@@ -1,4 +1,8 @@
-# 01. El Motor de Workflow (Estado v0.8.0)
+# 01. El Motor de Workflow
+
+| Estado | En proceso |
+| :--- | :--- |
+| **Versión del Componente** | `v0.8.0` |
 
 **Misión de este Documento:** Explicar la arquitectura y el funcionamiento del componente central que orquesta la lógica de automatización en la versión `v0.8.0` del `Praxis Heuristic Engine`. Este componente es el **cerebro** del motor, responsable de ejecutar cada tarea de principio a fin de manera controlada y resiliente.
 
@@ -30,15 +34,25 @@ Esto crea un sistema más limpio y declarativo:
 *   El código de la "ruta feliz" (la secuencia de éxito) es lineal y fácil de leer.
 *   Los escenarios de error son manejados por `handlers` de excepción específicos que deciden el siguiente estado.
 
-El motor distingue entre dos tipos de fallos, basándose en la implementación del `try...except` en `automator.py`:
-*   **Errores Reintentables Manejados Explícitamente:** Problemas transitorios como `ClipboardError` y `ApplicationStateNotReadyError`. La FSM permanece en el estado actual e incrementa un contador de reintentos.
+El motor distingue entre dos tipos de fallos:
+*   **Errores Reintentables Manejados Explícitamente:** Problemas transitorios como `ClipboardError` y `ApplicationStateNotReadyError`. La FSM permanece en el estado actual e incrementa un contador de reintentos, hasta un límite máximo configurable (`max_retries`). Si se supera el límite, la tarea falla de forma definitiva.
 *   **Errores Irrecuperables:** Fallos lógicos o de datos como `PatientIDMismatchError`, o cualquier `Exception` genérica e inesperada. La FSM transiciona inmediatamente al estado `TASK_FAILED`.
 
 ### Principio 3: Delegación a Handlers Especializados
 
 El motor (`RemoteAutomator`) actúa como el **director de orquesta**, pero no toca ningún instrumento. Su única responsabilidad es decidir qué estado viene a continuación. La acción real dentro de cada estado (ej. "buscar un paciente") se delega a un `Handler` especializado. En la `v0.8.0`, el motor depende directamente del `MainWindowHandler`.
 
-## 3. El Contrato del Workflow (Verificado para v0.8.0)
+## 3. Diagnóstico en Fallos Irrecuperables: Captura de Pantalla Automática
+
+Para mejorar la capacidad de diagnóstico y la resiliencia operativa, el `RemoteAutomator` implementa un mecanismo de seguridad crucial: la **captura de pantalla automática ante fallos inesperados**.
+
+*   **Disparador:** Esta funcionalidad se activa cuando se produce cualquier error genérico e irrecuperable (es decir, una `Exception` no controlada explícitamente).
+*   **Acción:** El motor captura una imagen del estado actual de la ventana de la aplicación de destino en el preciso momento del fallo.
+*   **Resultado:** La imagen se guarda en el directorio `data/output/screenshots/`. El nombre del archivo es descriptivo e incluye la fecha, la hora, el identificador de la tarea y el estado de la FSM en el que ocurrió el error (ej. `FAILURE_20231027_153000_HC12345_FINDING_PATIENT.png`).
+
+Esta característica proporciona un contexto visual invaluable para que los operadores y desarrolladores puedan depurar problemas complejos sin necesidad de replicar el escenario manualmente.
+
+## 4. El Contrato del Workflow (Verificado para v0.8.0)
 
 La siguiente sección describe de forma inequívoca la lógica de la FSM que está **codificada** dentro del `RemoteAutomator`. Es el "contrato" verificado de la misión de facturación.
 
@@ -63,22 +77,22 @@ graph TD
 | Estado Actual (TaskState) | Acción del Handler Invocada | Transición en Éxito | Evento de Fallo (Excepción) | Transición en Fallo |
 | :--- | :--- | :--- | :--- | :--- |
 | **`READY_FOR_NEW_TASK`** | (Ninguna) | `ENSURING_INITIAL_STATE` | - | - |
-| **`ENSURING_INITIAL_STATE`** | `main_window_handler.ensure_initial_state()` | `FINDING_PATIENT` | `ApplicationStateNotReadyError`, `ClipboardError` | **Reintento** en el estado actual |
+| **`ENSURING_INITIAL_STATE`** | `main_window_handler.ensure_initial_state()` | `FINDING_PATIENT` | `ApplicationStateNotReadyError` | **Reintento** (hasta `max_retries`) |
 | | | | `Exception` (genérica) | `TASK_FAILED` (Irrecuperable) |
-| **`FINDING_PATIENT`** | `main_window_handler.find_patient()` | `INITIATING_NEW_BILLING` | `ApplicationStateNotReadyError`, `ClipboardError` | **Reintento** en el estado actual |
+| **`FINDING_PATIENT`** | `main_window_handler.find_patient()` | `INITIATING_NEW_BILLING` | `ApplicationStateNotReadyError`, `ClipboardError` | **Reintento** (hasta `max_retries`) |
 | | | | `PatientIDMismatchError` | `TASK_FAILED` (Irrecuperable) |
 | | | | `Exception` (genérica) | `TASK_FAILED` (Irrecuperable) |
-| **`INITIATING_NEW_BILLING`** | `main_window_handler.initiate_new_billing()`| `TASK_SUCCESSFUL` | `ApplicationStateNotReadyError`, `ClipboardError` | **Reintento** en el estado actual |
+| **`INITIATING_NEW_BILLING`** | `main_window_handler.initiate_new_billing()`| `TASK_SUCCESSFUL` | `ApplicationStateNotReadyError` | **Reintento** (hasta `max_retries`) |
 | | | | `Exception` (genérica) | `TASK_FAILED` (Irrecuperable) |
 | **`TASK_SUCCESSFUL`** | (Estado terminal) | (Finaliza bucle) | - | - |
 | **`TASK_FAILED`** | (Estado terminal) | (Finaliza bucle) | - | - |
 
-## 4. Limitaciones y Deuda Técnica (v0.8.0)
+## 5. Limitaciones y Deuda Técnica (v0.8.0)
 
 1.  **Acoplamiento Fuerte al Workflow:** La lógica de la FSM (estados, transiciones, excepciones) está **codificada directamente** en el `RemoteAutomator`. No es un motor genérico; es un ejecutor especializado en la misión de facturación. Para ejecutar un workflow diferente, sería necesario modificar su código fuente.
 2.  **Conocimiento Implícito de Dependencias:** El motor asume la existencia del `MainWindowHandler`. No hay un mecanismo para descubrir o cargar `Handlers` de forma dinámica según la misión.
 
-## 5. Hoja de Ruta y Evolución
+## 6. Hoja de Ruta y Evolución
 
 Las limitaciones actuales son el principal motor de la evolución del proyecto. La visión a largo plazo es transformar este componente de un ejecutor especializado a un verdadero motor de workflows genérico.
 
@@ -86,3 +100,4 @@ Las limitaciones actuales son el principal motor de la evolución del proyecto. 
 
 ---
 `[ Volver al Índice de la Biblioteca ]`
+---
