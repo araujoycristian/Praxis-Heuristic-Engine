@@ -13,17 +13,22 @@ Este documento es la **única fuente de verdad** sobre la estructura y los requi
 *   **Para Operadores de Negocio:** Esta es su guía para preparar el archivo Excel de entrada. Seguir este contrato garantiza que el motor pueda procesar los datos de manera eficiente y sin errores de validación.
 *   **Para Desarrolladores:** Esta es la especificación del "esquema de datos" con el que trabaja el núcleo del motor. Define la estructura de las `dataclasses` internas y las reglas que el `DataValidator` debe hacer cumplir.
 
-## 2. Terminología Clave: Nombre Lógico vs. Nombre en Excel
+## 2. Terminología Clave: El Flujo de Nombres de Columnas
 
-Para que el motor sea flexible, utiliza un sistema de mapeo. Es crucial entender estos dos conceptos:
+Para que el motor sea flexible, utiliza un sistema de mapeo de tres pasos. Es crucial entender estos conceptos:
 
-*   **Nombre Lógico:** Es el identificador **interno, estable y en `minúsculas_con_guion_bajo`** que el motor utiliza en su código (ej. `numero_historia`). Es el "apodo" interno que nunca cambia.
-*   **Nombre en Excel:** Es el encabezado de la columna **tal como aparece en su archivo Excel** (ej. `'HISTORIA:'`, `'Nro. Historia'`, etc.). Este puede variar entre diferentes archivos o clientes.
+1.  **Nombre en Excel:** Es el encabezado de la columna **tal como aparece en su archivo Excel** (ej. `'HISTORIA:'`, `'Nro. Historia'`, etc.). Este puede variar entre diferentes archivos o clientes.
 
-**El Puente:** La sección `[ColumnMapping]` en su archivo de perfil `.ini` es el "diccionario de traducción" que conecta estos dos mundos. Le dice al motor: "Cuando veas la columna 'HISTORIA:' en el Excel, quiero que internamente la trates como `numero_historia`".
+2.  **Nombre Saneado:** Inmediatamente después de la carga, el motor **sanea** todos los `Nombres en Excel` a un formato interno consistente y predecible (minúsculas, sin espacios ni caracteres especiales, ej. `historia_`). Este es un paso automático.
+
+3.  **Nombre Lógico:** Es el identificador **estable y en `minusculas_con_guion_bajo`** que el motor utiliza en su código (ej. `numero_historia`). Es el "apodo" interno que nunca cambia.
+
+**El Puente:** La sección `[ColumnMapping]` en su archivo de perfil `.ini` es el "diccionario de traducción" que conecta el **Nombre Lógico** con el **Nombre en Excel**. El motor lo usa para saber a qué columna saneada corresponde cada campo lógico.
 
 ```ini
 # Ejemplo de la sección [ColumnMapping] en un perfil .ini
+# El motor sabe que el Nombre Lógico `numero_historia` corresponde al Nombre en Excel `HISTORIA:`.
+# Al validar, buscará la columna saneada `historia_` en los datos.
 [ColumnMapping]
 numero_historia = HISTORIA:
 identificacion = IDENTIFIC:
@@ -37,7 +42,6 @@ Las siguientes columnas **deben existir** en el archivo de entrada y **no pueden
 | Nombre Lógico | Obligatorio | Tipo de Dato Esperado | Descripción y Reglas de Validación (v0.8.0) | Ejemplo de Mapeo en `.ini` |
 | :--- | :--- | :--- | :--- | :--- |
 | `numero_historia` | **Sí** | `string` | Identificador único de la historia clínica del paciente. Usado para la búsqueda inicial. <br/> **Validación v0.8.0: No debe ser nulo.** | `numero_historia = HISTORIA:` |
-| `identificacion` | **Sí** | `string` | Número de identificación legal del paciente (ej. Cédula). Usado para la validación crítica post-búsqueda. <br/> **Validación v0.8.0: No debe ser nulo.** | `identificacion = IDENTIFIC:` |
 | `diagnostico_principal`| **Sí** | `string` | Código del diagnóstico principal del paciente (ej. CIE-10). <br/> **Validación v0.8.0: No debe ser nulo.** | `diagnostico_principal = DIAG INGRESO` |
 | `fecha_ingreso` | **Sí** | `date` | Fecha de ingreso. Se recomienda `YYYY-MM-DD` para evitar ambigüedades. <br/> **Validación v0.8.0: No debe ser nulo y debe ser una fecha válida.** | `fecha_ingreso = FEC/INGRESO:` |
 | `medico_tratante` | **Sí** | `string` | Nombre del médico que atiende al paciente. <br/> **Validación v0.8.0: No debe ser nulo.** | `medico_tratante = MEDICO:` |
@@ -51,6 +55,7 @@ Las siguientes columnas pueden o no estar presentes en el archivo de entrada. Si
 
 | Nombre Lógico | Obligatorio | Tipo de Dato Esperado | Descripción y Reglas de Validación (v0.8.0) | Ejemplo de Mapeo en `.ini` |
 | :--- | :--- | :--- | :--- | :--- |
+| `identificacion` | No | `string` | Número de identificación legal del paciente (ej. Cédula). Usado para la validación crítica post-búsqueda. <br/> **Validación v0.8.0: Ninguna (puede estar vacío).** | `identificacion = IDENTIFIC:` |
 | `diagnostico_adicional_1` | No | `string` | Primer código de diagnóstico adicional. <br/> **Validación v0.8.0: Ninguna (puede estar vacío).** | `diagnostico_adicional_1 = DX ADICIONAL1:` |
 | `diagnostico_adicional_2` | No | `string` | Segundo código de diagnóstico adicional. <br/> **Validación v0.8.0: Ninguna (puede estar vacío).** | `diagnostico_adicional_2 = DX ADICIONAL2:` |
 | `diagnostico_adicional_3` | No | `string` | Tercer código de diagnóstico adicional. <br/> **Validación v0.8.0: Ninguna (puede estar vacío).** | `diagnostico_adicional_3 = DX ADICIONAL3:` |
@@ -69,3 +74,4 @@ Este mecanismo asegura que solo los datos completos y de alta calidad lleguen al
 
 ---
 `[ Anterior: 04. Estrategia de Calidad y Pruebas ]` `[ Índice de la Biblioteca ]` `[ Siguiente: 06. El Entorno Operativo ]`
+---
